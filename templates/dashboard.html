@@ -4,8 +4,27 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Clemens Aviation Dashboard</title>
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap');
+
+        /* Material Icons Styling */
+        .material-icons {
+            font-family: 'Material Icons';
+            font-weight: normal;
+            font-style: normal;
+            font-size: 24px;
+            display: inline-block;
+            line-height: 1;
+            text-transform: none;
+            letter-spacing: normal;
+            word-wrap: normal;
+            white-space: nowrap;
+            direction: ltr;
+            color: #0ff;
+            vertical-align: middle;
+            text-shadow: 0 0 10px #0ff;
+        }
         
         * {
             margin: 0;
@@ -229,7 +248,7 @@
             color: #0ff;
         }
 
-        /* DINO - Kleiner */
+        /* DINO */
         #dino-card {
             grid-column: 2;
             grid-row: 2;
@@ -251,20 +270,15 @@
             gap: 0.15rem;
         }
 
-        .dino-icon {
-            font-size: 1.5rem;
-            animation: bounce 2s ease-in-out infinite;
-        }
-
         @keyframes bounce {
             0%, 100% { transform: translateY(0); }
             50% { transform: translateY(-8px); }
         }
 
         .dino-name {
-            font-size: 0.6rem;
+            font-size: 0.8rem;
             font-weight: 700;
-            color: #f0f;
+            color: #ff00aa;
         }
 
         .dino-fact {
@@ -273,14 +287,14 @@
             opacity: 0.9;
         }
 
-        /* STRAVA Card - NEU! */
+        /* STRAVA Card */
         #strava-card {
             grid-column: 2;
             grid-row: 3;
             cursor: pointer;
             transition: all 0.3s;
             background: linear-gradient(135deg, rgba(252, 76, 2, 0.1), rgba(0, 20, 40, 0.85));
-            border-color: #fc4c02;
+            border-color: #0ff;
         }
 
         #strava-card::before {
@@ -294,7 +308,7 @@
         }
 
         #strava-card h2 {
-            color: #fc4c02;
+            color: #0ff;
             text-shadow: 0 0 10px #fc4c02;
         }
 
@@ -313,10 +327,6 @@
             gap: 0.1rem;
         }
 
-        .strava-icon {
-            font-size: 1.2rem;
-        }
-
         .strava-value {
             font-size: 1.1rem;
             font-weight: 900;
@@ -330,10 +340,6 @@
             text-transform: uppercase;
         }
 
-        .strava-streak {
-            font-size: 1.8rem;
-            animation: stravaGlow 2s ease-in-out infinite;
-        }
 
         @keyframes stravaGlow {
             0%, 100% { filter: drop-shadow(0 0 5px #fc4c02); }
@@ -382,11 +388,11 @@
         /* TAF */
         #taf-card {
             grid-column: 4;
-            grid-row: 2 / 3;
+            grid-row: 2 / 4;
         }
 
         .taf-content {
-            font-size: 0.5rem;
+            font-size: 0.6rem;
             font-family: 'Courier New', monospace;
             background: rgba(0, 0, 0, 0.5);
             padding: 0.4rem;
@@ -401,7 +407,7 @@
         /* NOTAM */
         #notam-card {
             grid-column: 4;
-            grid-row: 3 / 5;
+            grid-row: 4 / 5;
         }
 
         .notam-list {
@@ -431,7 +437,7 @@
         /* Navigation */
         nav {
             display: grid;
-            grid-template-columns: repeat(5, 1fr);
+            grid-template-columns: repeat(4, 1fr);
             gap: 0.3rem;
         }
 
@@ -460,17 +466,7 @@
             transform: scale(0.95);
         }
 
-        nav button.strava-btn {
-            background: rgba(252, 76, 2, 0.1);
-            color: #fc4c02;
-            border-color: #fc4c02;
-            box-shadow: 0 0 10px rgba(252, 76, 2, 0.3);
-        }
 
-        nav button.strava-btn:hover {
-            background: rgba(252, 76, 2, 0.3);
-            box-shadow: 0 0 20px rgba(252, 76, 2, 0.6);
-        }
 
         .loading {
             display: inline-block;
@@ -493,7 +489,7 @@
 
     <div class="container">
         <header>
-            <h1>CLEMENS AVIATION DASHBOARD</h1>
+            <h1>CLEMIS AVIATION DASHBOARD</h1>
             <div id="date-time"></div>
         </header>
 
@@ -508,7 +504,6 @@
                 <h2>METAR</h2>
                 <div class="metar-station">{{ metar.station }}</div>
                 <div class="flight-rules {{ metar.flight_rules }}">{{ metar.flight_rules }}</div>
-                <div class="metar-raw">{{ metar.raw }}</div>
                 <div class="metar-data">
                     <div class="data-item">
                         <div class="data-label">WIND</div>
@@ -541,11 +536,10 @@
                 </div>
             </div>
 
-            <!-- DINO - Kleiner -->
+            <!-- DINO -->
             <div class="card" id="dino-card" onclick="location.href='/dino'">
-                <h2>🦖 DINO</h2>
+                <h2>DINO DES TAGES</h2>
                 <div class="dino-content">
-                    <div class="dino-icon">🦖</div>
                     <div class="dino-name">{{ dino.name }}</div>
                     <div class="dino-fact">{{ dino.fact }}</div>
                 </div>
@@ -602,7 +596,6 @@
             <button onclick="location.href='/'">HOME</button>
             <button onclick="location.href='/weather'">WETTER</button>
             <button onclick="location.href='/flights'">FLÜGE</button>
-            <button class="strava-btn" onclick="location.href='/strava'">STRAVA</button>
             <button onclick="location.href='/settings'">SETTINGS</button>
         </nav>
     </div>
@@ -640,7 +633,6 @@
                     return;
                 }
 
-                // Zeige Streak und Monats-KM
                 stravaEl.innerHTML = `
                     <div class="strava-stat">
                         <div class="strava-value">${data.streak} Wochen</div>

@@ -616,14 +616,45 @@ def calculate_sun_moon_times():
 
 
 def fetch_notams(station="EDLP"):
-    """Fetch NOTAMs - mock data"""
-    logger.debug(f"Fetching NOTAMs for {station}")
+    """Fetch NOTAMs from AVWX and return them in the mock format."""
+
+    url = f"https://avwx.rest/api/notam/{station}"
+    headers = {"Authorization": f"BEARER {AVWX_TOKEN}"}
+
+    try:
+        logger.info(f"Fetching NOTAMs for {station}")
+        resp = httpx.get(url, headers=headers, timeout=10)
+
+        if resp.status_code == 200:
+            data = resp.json()
+
+            # AVWX returns: a list of NOTAM objects
+            notam_list = []
+            for entry in data:
+                notam_list.append({
+                    "id": entry.get("id", "UNKNOWN"),
+                    "message": entry.get("raw", "No message available")
+                })
+
+            logger.info(f"Received {len(notam_list)} NOTAMs for {station}")
+
+            return {
+                "station": station,
+                "notams": notam_list
+            }
+
+        else:
+            logger.error(f"AVWX returned status {resp.status_code}")
+
+    except Exception as e:
+        logger.error(f"NOTAM Error: {e}")
+
+    # Fallback if API fails
     return {
-        "notams": [
-            {"id": "A0123/25", "message": "RWY 06/24 CLSD FOR MAINTENANCE"},
-            {"id": "A0124/25", "message": "TWR FREQ CHANGED TO 119.75 MHZ"}
-        ]
+        "station": station,
+        "notams": []
     }
+
 
 
 # === REQUEST TIMING MIDDLEWARE ===

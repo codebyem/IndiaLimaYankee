@@ -4,8 +4,27 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Settings - Aviation Dashboard</title>
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap');
+
+        /* Material Icons Styling */
+        .material-icons {
+            font-family: 'Material Icons';
+            font-weight: normal;
+            font-style: normal;
+            font-size: 24px;
+            display: inline-block;
+            line-height: 1;
+            text-transform: none;
+            letter-spacing: normal;
+            word-wrap: normal;
+            white-space: nowrap;
+            direction: ltr;
+            color: #0ff;
+            vertical-align: middle;
+            text-shadow: 0 0 10px #0ff;
+        }
 
         * {
             margin: 0;
@@ -235,12 +254,12 @@
 
     <div class="container">
         <header>
-            <h1>⚙️ SETTINGS</h1>
+            <h1><span class="material-icons" style="font-size: 1.2rem;">settings</span> SETTINGS</h1>
         </header>
 
         <main>
             <div class="settings-section">
-                <h2>🛩️ AIRPORT SETTINGS</h2>
+                <h2><span class="material-icons" style="font-size: 0.9rem;">flight</span> AIRPORT SETTINGS</h2>
 
                 <div class="setting-item">
                     <label class="setting-label">Airport ICAO Code</label>
@@ -260,15 +279,15 @@
                 </div>
 
                 <div class="button-group">
-                    <button class="save-btn" onclick="saveSettings()">💾 SPEICHERN</button>
-                    <button onclick="testAirport()">🧪 TESTEN</button>
+                    <button class="save-btn" onclick="saveSettings()"><span class="material-icons" style="font-size: 0.8rem;">save</span> SPEICHERN</button>
+                    <button onclick="testAirport()"><span class="material-icons" style="font-size: 0.8rem;">science</span> TESTEN</button>
                 </div>
 
                 <div id="message" class="message"></div>
             </div>
 
             <div class="settings-section">
-                <h2>ℹ️ INFO</h2>
+                <h2><span class="material-icons" style="font-size: 0.9rem;">info</span> INFO</h2>
                 <div style="font-size: 0.65rem; line-height: 1.4; opacity: 0.8;">
                     <p><strong>Häufige Flughäfen:</strong></p>
                     <p style="margin-top: 0.5rem;">
@@ -284,8 +303,8 @@
         </main>
 
         <nav>
-            <button onclick="location.href='/'">⬅️ ZURÜCK</button>
-            <button onclick="resetSettings()">🔄 RESET</button>
+            <button onclick="location.href='/'"><span class="material-icons" style="font-size: 0.8rem;">arrow_back</span> ZURÜCK</button>
+            <button onclick="resetSettings()"><span class="material-icons" style="font-size: 0.8rem;">refresh</span> RESET</button>
         </nav>
     </div>
 
@@ -324,12 +343,12 @@
 
                 if (resp.ok) {
                     document.getElementById('current-airport').textContent = icao;
-                    showMessage('✓ Einstellungen gespeichert!', 'success');
+                    showMessage('Einstellungen gespeichert!', 'success');
                 } else {
-                    showMessage('✗ Fehler: ' + data.error, 'error');
+                    showMessage('Fehler: ' + data.error, 'error');
                 }
             } catch (error) {
-                showMessage('✗ Netzwerkfehler', 'error');
+                showMessage('Netzwerkfehler', 'error');
             }
         }
 
@@ -341,19 +360,19 @@
                 return;
             }
 
-            showMessage('⏳ Teste Flughafen...', 'success');
+            showMessage('Teste Flughafen...', 'success');
 
             try {
                 const resp = await fetch(`/api/test-airport/${icao}`);
                 const data = await resp.json();
 
                 if (data.valid) {
-                    showMessage(`✓ ${icao} gefunden: ${data.name || data.station}`, 'success');
+                    showMessage(`${icao} gefunden: ${data.name || data.station}`, 'success');
                 } else {
-                    showMessage(`✗ ${icao} nicht gefunden oder keine Daten`, 'error');
+                    showMessage(`${icao} nicht gefunden oder keine Daten`, 'error');
                 }
             } catch (error) {
-                showMessage('✗ Test fehlgeschlagen', 'error');
+                showMessage('Test fehlgeschlagen', 'error');
             }
         }
 

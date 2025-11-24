@@ -5,8 +5,16 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Wetter Radar - Aviation Dashboard</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet" />
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap');
+        .material-symbols-outlined {
+            font-variation-settings:
+                    "FILL" 1,
+                    "wght" 700,
+                    "GRAD" 0,
+                    "opsz" 48;
+        }
 
         * {
             margin: 0;
@@ -169,7 +177,12 @@
 
     <div class="container">
         <header>
-            <h1>🌦 WETTER RADAR</h1>
+            <h1>
+                <span class="material-symbols-outlined" style="font-size: 1.2rem; vertical-align: middle; color: #0ff;">
+                    thunderstorm
+                </span>
+                WETTER RADAR
+            </h1>
         </header>
 
         <div id="map"></div>
@@ -217,7 +230,19 @@
 
         // Custom home marker with cyan style
         const homeIcon = L.divIcon({
-            html: '<div style="font-size: 24px; text-shadow: 0 0 10px #0ff;">📍</div>',
+            html: `
+                <span class="material-symbols-outlined"
+                    style="
+                        font-size: 34px;
+                        color: #0ff;
+                        filter:
+                            drop-shadow(0 0 4px #0ff)
+                            drop-shadow(0 0 8px #0ff);
+                    ">
+                    location_on
+                </span>
+            `,
+
             className: 'custom-marker',
             iconSize: [24, 24],
             iconAnchor: [12, 24]

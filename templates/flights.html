@@ -96,7 +96,36 @@
             border: 2px solid #0ff;
             border-radius: 6px;
             box-shadow: 0 0 20px rgba(0, 255, 255, 0.3);
+            position: relative;
+            overflow: hidden;
         }
+
+        /* ----------------------- RADAR SWEEP ----------------------- */
+        .radar-sweep {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 200%;
+            height: 200%;
+            pointer-events: none;
+            transform-origin: center;
+            background: conic-gradient(
+                rgba(0,255,255,0.25) 0deg,
+                rgba(0,255,255,0.15) 20deg,
+                rgba(0,255,255,0) 80deg
+            );
+            border-radius: 50%;
+            animation: rotateSweep 6s linear infinite;
+            z-index: 10;
+            filter: blur(4px);
+            opacity: 0.35;
+        }
+
+        @keyframes rotateSweep {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        /* ----------------------------------------------------------- */
 
         nav {
             display: grid;
@@ -134,14 +163,31 @@
             position: absolute;
             top: 80px;
             right: 10px;
-            background: rgba(0, 20, 40, 0.95);
+            background: rgba(0, 30, 60, 0.92);
             border: 2px solid #0ff;
-            padding: 1rem;
-            border-radius: 6px;
-            font-size: 0.8rem;
+            padding: 1.2rem;
+            border-radius: 10px;
+            font-size: 0.85rem;
             z-index: 1000;
-            box-shadow: 0 0 20px rgba(0, 255, 255, 0.4);
-            min-width: 180px;
+            min-width: 210px;
+            box-shadow:
+                0 0 25px rgba(0, 255, 255, 0.6),
+                inset 0 0 12px rgba(0, 255, 255, 0.25);
+            backdrop-filter: blur(4px);
+            animation: infoGlow 4s ease-in-out infinite;
+        }
+
+        @keyframes infoGlow {
+            0%, 100% {
+                box-shadow:
+                    0 0 25px rgba(0, 255, 255, 0.4),
+                    inset 0 0 12px rgba(0, 255, 255, 0.2);
+            }
+            50% {
+                box-shadow:
+                    0 0 35px rgba(0, 255, 255, 0.7),
+                    inset 0 0 18px rgba(0, 255, 255, 0.35);
+            }
         }
 
         .info-box h3 {
@@ -191,12 +237,12 @@
         }
 
         /* Altitude-based colors */
-        .altitude-low { color: #ff3333; }      /* Red - below 1000m */
-        .altitude-medium { color: #ffaa00; }   /* Orange - 1000-5000m */
-        .altitude-high { color: #00ffff; }     /* Cyan - 5000-10000m */
-        .altitude-cruise { color: #ff00ff; }   /* Magenta - above 10000m */
+        .altitude-low { color: #ff3333; }
+        .altitude-medium { color: #ffaa00; }
+        .altitude-high { color: #00ffff; }
+        .altitude-cruise { color: #ff00ff; }
 
-        /* Leaflet popup styling */
+        /* Popup styling */
         .leaflet-popup-content-wrapper {
             background: rgba(0, 20, 40, 0.98);
             color: #0ff;
@@ -300,15 +346,17 @@
 
     <div class="container">
         <header>
-            <h1>✈ LIVE FLUGVERKEHR</h1>
+            <h1>LIVE FLUGVERKEHR</h1>
         </header>
 
-        <div id="map"></div>
+        <div id="map">
+            <div class="radar-sweep"></div>
+        </div>
 
         <div class="info-box">
-            <h3>🛩 FLUGZEUGE</h3>
+            <h3>FLUGZEUGE</h3>
             <div class="flight-count" id="flight-count">0</div>
-            <div class="info-detail">In der Nähe</div>
+            <div class="info-detail">In deiner Nähe</div>
             <div class="info-detail" style="margin-top: 1rem;">Update: 30s</div>
         </div>
 
@@ -322,32 +370,38 @@
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
-        // Initialize map with coordinates from Flask (fallback to example coords)
-        const homeLat = 51.9066; // Example: Gütersloh
+        const homeLat = 51.9066;
         const homeLon = 8.3853;
         const map = L.map('map').setView([homeLat, homeLon], 8);
 
-        // Dark base layer for better contrast
         L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
             attribution: '© OpenStreetMap, © CartoDB',
             maxZoom: 19
         }).addTo(map);
 
-        // Custom home marker
         const homeIcon = L.divIcon({
-            html: '<div style="font-size: 28px; text-shadow: 0 0 10px #0ff;">📍</div>',
+            html: `
+            <span class="material-symbols-outlined"
+                style="
+                    font-size: 48px;
+                    color: #0ff;
+                    filter:
+                    drop-shadow(0 0 4px #0ff)
+                    drop-shadow(0 0 8px #0ff)
+                    drop-shadow(0 0 12px #0ff);
+                 ">
+                home_pin
+          </span>`,
             className: 'custom-marker',
-            iconSize: [28, 28],
-            iconAnchor: [14, 28]
+            iconSize: [48, 48],
+            iconAnchor: [24, 48]
         });
 
         L.marker([homeLat, homeLon], { icon: homeIcon }).addTo(map)
             .bindPopup('<b style="color: #0ff;">HOME BASE</b>');
 
-        // Store plane markers
         let planeMarkers = {};
 
-        // Function to get altitude-based color class
         function getAltitudeClass(altitude) {
             if (altitude < 1000) return 'altitude-low';
             if (altitude < 5000) return 'altitude-medium';
@@ -355,7 +409,6 @@
             return 'altitude-cruise';
         }
 
-        // Function to create plane icon with rotation and color
         function createPlaneIcon(heading, altitude) {
             const colorClass = getAltitudeClass(altitude);
             const rotation = heading || 0;
@@ -374,23 +427,20 @@
             });
         }
 
-        // Function to get flight status
         function getFlightStatus(onGround, verticalRate) {
-            if (onGround) return { text: '🅿️ AM BODEN', class: 'status-ground' };
-            if (verticalRate > 1) return { text: '🔺 STEIGFLUG', class: 'status-climbing' };
-            if (verticalRate < -1) return { text: '🔻 LANDEANFLUG', class: 'status-descending' };
-            return { text: '➡️ REISEFLUG', class: 'status-level' };
+            if (onGround) return { text: 'AM BODEN', class: 'status-ground' };
+            if (verticalRate > 1) return { text: 'STEIGFLUG', class: 'status-climbing' };
+            if (verticalRate < -1) return { text: 'LANDEANFLUG', class: 'status-descending' };
+            return { text: 'REISEFLUG', class: 'status-level' };
         }
 
-        // Function to check emergency squawk codes
         function checkEmergency(squawk) {
-            if (squawk === '7500') return '🚨 HIJACK ALERT';
-            if (squawk === '7600') return '📡 FUNKAUSFALL';
-            if (squawk === '7700') return '🆘 NOTFALL';
+            if (squawk === '7500') return 'HIJACK ALERT';
+            if (squawk === '7600') return 'FUNKAUSFALL';
+            if (squawk === '7700') return 'NOTFALL';
             return null;
         }
 
-        // Function to format time since last contact
         function getDataAge(lastContact) {
             const age = Math.floor(Date.now() / 1000 - lastContact);
             if (age < 60) return `${age}s`;
@@ -398,13 +448,10 @@
             return `${Math.floor(age / 3600)}h`;
         }
 
-        // Fetch flights from OpenSky Network API
         async function updateFlights() {
             try {
-                // Define bounding box (approximately 150km around home)
                 const latDelta = 1.5;
                 const lonDelta = 2.0;
-
                 const bbox = `lamin=${homeLat-latDelta}&lomin=${homeLon-lonDelta}&lamax=${homeLat+latDelta}&lomax=${homeLon+lonDelta}`;
                 const url = `https://opensky-network.org/api/states/all?${bbox}`;
 
@@ -412,7 +459,6 @@
                 const data = await resp.json();
 
                 if (data.states) {
-                    // Clear old markers
                     Object.values(planeMarkers).forEach(marker => map.removeLayer(marker));
                     planeMarkers = {};
 
@@ -420,23 +466,13 @@
 
                     data.states.forEach(state => {
                         const [
-                            icao24,           // 0
-                            callsign,         // 1
-                            country,          // 2
-                            timePosition,     // 3
-                            lastContact,      // 4
-                            lon,              // 5
-                            lat,              // 6
-                            baroAltitude,     // 7
-                            onGround,         // 8
-                            velocity,         // 9
-                            trueTrack,        // 10
-                            verticalRate,     // 11
-                            sensors,          // 12
-                            geoAltitude,      // 13
-                            squawk,           // 14
-                            spi,              // 15
-                            positionSource    // 16
+                            icao24, callsign, country,
+                            timePosition, lastContact,
+                            lon, lat, baroAltitude,
+                            onGround, velocity,
+                            trueTrack, verticalRate,
+                            sensors, geoAltitude,
+                            squawk
                         ] = state;
 
                         if (lat && lon) {
@@ -450,10 +486,8 @@
                             const flightStatus = getFlightStatus(onGround, vRate);
                             const emergency = squawk ? checkEmergency(squawk) : null;
 
-                            // Create icon with rotation and color
                             const icon = createPlaneIcon(heading, altitude);
 
-                            // Create detailed popup
                             let popupContent = `
                                 <div>
                                     <div class="popup-header">
@@ -484,11 +518,6 @@
                                         <span class="popup-label">Kurs:</span>
                                         <span class="popup-value">${Math.round(heading)}°</span>
                                     </div>
-
-                                    <div class="popup-row">
-                                        <span class="popup-label">Vertikalrate:</span>
-                                        <span class="popup-value">${vRate > 0 ? '+' : ''}${vRate.toFixed(1)} m/s</span>
-                                    </div>
                             `;
 
                             if (squawk) {
@@ -501,14 +530,9 @@
                             }
 
                             popupContent += `
-                                    <div class="popup-row">
-                                        <span class="popup-label">Datenalter:</span>
-                                        <span class="popup-value">${dataAge}</span>
-                                    </div>
-
-                                    <div style="text-align: center;">
-                                        <span class="status-badge ${flightStatus.class}">${flightStatus.text}</span>
-                                    </div>
+                                <div style="text-align: center;">
+                                    <span class="status-badge ${flightStatus.class}">${flightStatus.text}</span>
+                                </div>
                             `;
 
                             if (emergency) {
@@ -521,7 +545,6 @@
 
                             popupContent += '</div>';
 
-                            // Add marker
                             const marker = L.marker([lat, lon], { icon: icon })
                                 .addTo(map)
                                 .bindPopup(popupContent);
@@ -530,7 +553,6 @@
                         }
                     });
 
-                    // Update flight count
                     document.getElementById('flight-count').textContent = count;
                 } else {
                     document.getElementById('flight-count').textContent = '0';
@@ -541,10 +563,7 @@
             }
         }
 
-        // Initial load
         updateFlights();
-
-        // Update every 30 seconds
         setInterval(updateFlights, 30000);
     </script>
 </body>
