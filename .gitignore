@@ -1,0 +1,42 @@
+# Environment variables and secrets
+.env
+
+# Python virtual environment
+.venv/
+venv/
+env/
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# IDE and editor files
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Log files
+*.log
+
+# User data files
+settings.json
+dinos.json
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Flask cache
+instance/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Distribution / packaging
+dist/
+build/
+*.egg-info/

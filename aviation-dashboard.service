@@ -1,0 +1,20 @@
+[Unit]
+Description=Aviation Dashboard
+After=network.target
+
+[Service]
+Type=simple
+User=pi
+WorkingDirectory=/home/pi/IndiaLimaYankee
+Environment="PATH=/home/pi/IndiaLimaYankee/.venv/bin"
+ExecStart=/home/pi/IndiaLimaYankee/.venv/bin/python app.py
+Restart=always
+RestartSec=10
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=aviation-dashboard
+
+[Install]
+WantedBy=multi-user.target

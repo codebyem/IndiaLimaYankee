@@ -1,0 +1,721 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Clemens Aviation Dashboard</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap');
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Orbitron', monospace;
+            background: #000;
+            color: #0ff;
+            overflow: hidden;
+            height: 100vh;
+            position: relative;
+        }
+
+        /* Animated Background */
+        .bg-grid {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background:
+                linear-gradient(rgba(0, 255, 255, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 255, 255, 0.03) 1px, transparent 1px);
+            background-size: 50px 50px;
+            animation: gridMove 20s linear infinite;
+            z-index: 0;
+        }
+
+        @keyframes gridMove {
+            0% { transform: translateY(0); }
+            100% { transform: translateY(50px); }
+        }
+
+        .scanline {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(transparent 50%, rgba(0, 255, 255, 0.03) 50%);
+            background-size: 100% 4px;
+            pointer-events: none;
+            animation: scan 8s linear infinite;
+            z-index: 999;
+        }
+
+        @keyframes scan {
+            0% { background-position: 0 0; }
+            100% { background-position: 0 100%; }
+        }
+
+        .container {
+            position: relative;
+            z-index: 1;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            padding: 0.4rem;
+            gap: 0.4rem;
+        }
+
+        header {
+            text-align: center;
+            padding: 0.3rem;
+            background: rgba(0, 255, 255, 0.05);
+            border: 2px solid #0ff;
+            border-radius: 6px;
+            box-shadow: 0 0 20px rgba(0, 255, 255, 0.3);
+        }
+
+        header h1 {
+            font-size: 1rem;
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            text-shadow: 0 0 10px #0ff;
+        }
+
+        #date-time {
+            font-size: 0.6rem;
+            color: #0ff;
+            margin-top: 0.1rem;
+            opacity: 0.8;
+        }
+
+        /* Main Grid - Updated for Strava */
+        main {
+            flex: 1;
+            display: grid;
+            grid-template-columns: 1fr 0.7fr 1.3fr 0.7fr;
+            grid-template-rows: auto 0.8fr 0.8fr 1fr;
+            gap: 0.4rem;
+            overflow: hidden;
+        }
+
+        .card {
+            background: rgba(0, 20, 40, 0.8);
+            border: 2px solid #0ff;
+            border-radius: 6px;
+            padding: 0.4rem;
+            box-shadow: 0 0 15px rgba(0, 255, 255, 0.3);
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, #0ff, transparent);
+            animation: borderGlow 3s linear infinite;
+        }
+
+        @keyframes borderGlow {
+            0%, 100% { opacity: 0.3; }
+            50% { opacity: 1; }
+        }
+
+        .card h2 {
+            font-size: 0.6rem;
+            color: #0ff;
+            margin-bottom: 0.3rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        /* Clock */
+        #clock-card {
+            grid-column: 1 / -1;
+            justify-content: center;
+            align-items: center;
+            background: rgba(0, 40, 80, 0.9);
+            min-height: 50px;
+        }
+
+        #digital-clock {
+            font-size: 2rem;
+            font-weight: 900;
+            color: #0ff;
+            text-shadow: 0 0 20px #0ff;
+            font-family: 'Orbitron', monospace;
+            letter-spacing: 4px;
+        }
+
+        /* METAR */
+        #metar-card {
+            grid-column: 1;
+            grid-row: 2 / 5;
+        }
+
+        .metar-station {
+            font-size: 0.9rem;
+            font-weight: 900;
+            color: #0ff;
+            text-align: center;
+            margin-bottom: 0.3rem;
+        }
+
+        .flight-rules {
+            display: inline-block;
+            padding: 0.25rem 0.6rem;
+            border-radius: 4px;
+            font-weight: 900;
+            font-size: 0.75rem;
+            text-align: center;
+            width: 100%;
+            margin-bottom: 0.3rem;
+            box-shadow: 0 0 15px currentColor;
+            border: 2px solid currentColor;
+        }
+
+        .flight-rules.VFR { background: rgba(0, 255, 0, 0.2); color: #0f0; border-color: #0f0; }
+        .flight-rules.MVFR { background: rgba(0, 150, 255, 0.2); color: #09f; border-color: #09f; }
+        .flight-rules.IFR { background: rgba(255, 150, 0, 0.2); color: #fa0; border-color: #fa0; }
+        .flight-rules.LIFR { background: rgba(255, 0, 0, 0.2); color: #f00; border-color: #f00; }
+
+        .metar-raw {
+            font-size: 0.45rem;
+            background: rgba(0, 0, 0, 0.5);
+            padding: 0.3rem;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            color: #0ff;
+            border: 1px solid #0ff;
+            margin-bottom: 0.3rem;
+            line-height: 1.1;
+        }
+
+        .metar-data {
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+        }
+
+        .data-item {
+            background: rgba(0, 255, 255, 0.05);
+            padding: 0.3rem 0.5rem;
+            border-radius: 4px;
+            border: 1px solid rgba(0, 255, 255, 0.3);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .data-label {
+            font-size: 0.55rem;
+            opacity: 0.7;
+        }
+
+        .data-value {
+            font-size: 0.7rem;
+            font-weight: 700;
+            color: #0ff;
+        }
+
+        /* DINO - Kleiner */
+        #dino-card {
+            grid-column: 2;
+            grid-row: 2;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        #dino-card:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 25px rgba(255, 0, 255, 0.6);
+        }
+
+        .dino-content {
+            text-align: center;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            gap: 0.15rem;
+        }
+
+        .dino-icon {
+            font-size: 1.5rem;
+            animation: bounce 2s ease-in-out infinite;
+        }
+
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-8px); }
+        }
+
+        .dino-name {
+            font-size: 0.6rem;
+            font-weight: 700;
+            color: #f0f;
+        }
+
+        .dino-fact {
+            font-size: 0.45rem;
+            line-height: 1.1;
+            opacity: 0.9;
+        }
+
+        /* STRAVA Card - NEU! */
+        #strava-card {
+            grid-column: 2;
+            grid-row: 3;
+            cursor: pointer;
+            transition: all 0.3s;
+            background: linear-gradient(135deg, rgba(252, 76, 2, 0.1), rgba(0, 20, 40, 0.85));
+            border-color: #fc4c02;
+        }
+
+        #strava-card::before {
+            background: linear-gradient(90deg, transparent, #fc4c02, transparent);
+        }
+
+        #strava-card:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 25px rgba(252, 76, 2, 0.6);
+            border-color: #ff6020;
+        }
+
+        #strava-card h2 {
+            color: #fc4c02;
+            text-shadow: 0 0 10px #fc4c02;
+        }
+
+        .strava-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-around;
+            text-align: center;
+        }
+
+        .strava-stat {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.1rem;
+        }
+
+        .strava-icon {
+            font-size: 1.2rem;
+        }
+
+        .strava-value {
+            font-size: 1.1rem;
+            font-weight: 900;
+            color: #fc4c02;
+            text-shadow: 0 0 10px #fc4c02;
+        }
+
+        .strava-label {
+            font-size: 0.5rem;
+            opacity: 0.8;
+            text-transform: uppercase;
+        }
+
+        .strava-streak {
+            font-size: 1.8rem;
+            animation: stravaGlow 2s ease-in-out infinite;
+        }
+
+        @keyframes stravaGlow {
+            0%, 100% { filter: drop-shadow(0 0 5px #fc4c02); }
+            50% { filter: drop-shadow(0 0 15px #fc4c02); }
+        }
+
+        /* NASA EPIC */
+        #nasa-epic-card {
+            grid-column: 2;
+            grid-row: 4;
+        }
+
+        /* NASA APOD */
+        #nasa-apod-card {
+            grid-column: 3;
+            grid-row: 2 / 5;
+        }
+
+        .nasa-image-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+            overflow: hidden;
+        }
+
+        .nasa-image {
+            width: 100%;
+            flex: 1;
+            object-fit: cover;
+            border-radius: 4px;
+            border: 1px solid #0ff;
+            box-shadow: 0 0 20px rgba(0, 255, 255, 0.4);
+            min-height: 0;
+        }
+
+        .nasa-title {
+            font-size: 0.45rem;
+            color: #0ff;
+            text-align: center;
+            line-height: 1.1;
+            max-height: 1.3rem;
+            overflow: hidden;
+        }
+
+        /* TAF */
+        #taf-card {
+            grid-column: 4;
+            grid-row: 2 / 3;
+        }
+
+        .taf-content {
+            font-size: 0.5rem;
+            font-family: 'Courier New', monospace;
+            background: rgba(0, 0, 0, 0.5);
+            padding: 0.4rem;
+            border-radius: 4px;
+            border: 1px solid #0ff;
+            color: #0ff;
+            overflow-y: auto;
+            flex: 1;
+            line-height: 1.2;
+        }
+
+        /* NOTAM */
+        #notam-card {
+            grid-column: 4;
+            grid-row: 3 / 5;
+        }
+
+        .notam-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.3rem;
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        .notam-item {
+            background: rgba(255, 0, 0, 0.1);
+            border: 1px solid #f00;
+            border-radius: 4px;
+            padding: 0.3rem;
+            font-size: 0.45rem;
+            line-height: 1.2;
+        }
+
+        .notam-id {
+            color: #f00;
+            font-weight: 700;
+            margin-bottom: 0.2rem;
+            font-size: 0.5rem;
+        }
+
+        /* Navigation */
+        nav {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 0.3rem;
+        }
+
+        nav button {
+            padding: 0.5rem;
+            font-family: 'Orbitron', monospace;
+            font-size: 0.65rem;
+            font-weight: 700;
+            background: rgba(0, 255, 255, 0.1);
+            color: #0ff;
+            border: 2px solid #0ff;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            box-shadow: 0 0 10px rgba(0, 255, 255, 0.3);
+        }
+
+        nav button:hover {
+            background: rgba(0, 255, 255, 0.3);
+            box-shadow: 0 0 20px rgba(0, 255, 255, 0.6);
+        }
+
+        nav button:active {
+            transform: scale(0.95);
+        }
+
+        nav button.strava-btn {
+            background: rgba(252, 76, 2, 0.1);
+            color: #fc4c02;
+            border-color: #fc4c02;
+            box-shadow: 0 0 10px rgba(252, 76, 2, 0.3);
+        }
+
+        nav button.strava-btn:hover {
+            background: rgba(252, 76, 2, 0.3);
+            box-shadow: 0 0 20px rgba(252, 76, 2, 0.6);
+        }
+
+        .loading {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid rgba(0, 255, 255, 0.3);
+            border-top-color: #0ff;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="bg-grid"></div>
+    <div class="scanline"></div>
+
+    <div class="container">
+        <header>
+            <h1>CLEMENS AVIATION DASHBOARD</h1>
+            <div id="date-time"></div>
+        </header>
+
+        <main>
+            <!-- Clock -->
+            <div class="card" id="clock-card">
+                <div id="digital-clock">--:--:--</div>
+            </div>
+
+            <!-- METAR -->
+            <div class="card" id="metar-card">
+                <h2>METAR</h2>
+                <div class="metar-station">{{ metar.station }}</div>
+                <div class="flight-rules {{ metar.flight_rules }}">{{ metar.flight_rules }}</div>
+                <div class="metar-raw">{{ metar.raw }}</div>
+                <div class="metar-data">
+                    <div class="data-item">
+                        <div class="data-label">WIND</div>
+                        <div class="data-value">{{ metar.wind_direction }}° {{ metar.wind_speed }}KT</div>
+                    </div>
+                    <div class="data-item">
+                        <div class="data-label">TEMP</div>
+                        <div class="data-value">{{ metar.temperature }}°C</div>
+                    </div>
+                    <div class="data-item">
+                        <div class="data-label">DEWPOINT</div>
+                        <div class="data-value">{{ metar.dewpoint }}°C</div>
+                    </div>
+                    <div class="data-item">
+                        <div class="data-label">VISIBILITY</div>
+                        <div class="data-value">{{ metar.visibility }}SM</div>
+                    </div>
+                    <div class="data-item">
+                        <div class="data-label">PRESSURE</div>
+                        <div class="data-value">{{ metar.altimeter }}inHg</div>
+                    </div>
+                    <div class="data-item">
+                        <div class="data-label">SUNRISE</div>
+                        <div class="data-value" id="sunrise-time">--:--</div>
+                    </div>
+                    <div class="data-item">
+                        <div class="data-label">SUNSET</div>
+                        <div class="data-value" id="sunset-time">--:--</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- DINO - Kleiner -->
+            <div class="card" id="dino-card" onclick="location.href='/dino'">
+                <h2>🦖 DINO</h2>
+                <div class="dino-content">
+                    <div class="dino-icon">🦖</div>
+                    <div class="dino-name">{{ dino.name }}</div>
+                    <div class="dino-fact">{{ dino.fact }}</div>
+                </div>
+            </div>
+
+            <!-- STRAVA - NEU! -->
+            <div class="card" id="strava-card" onclick="location.href='/strava'">
+                <h2>STRAVA</h2>
+                <div class="strava-content" id="strava-content">
+                    <div class="loading"></div>
+                </div>
+            </div>
+
+            <!-- NASA EPIC -->
+            <div class="card" id="nasa-epic-card">
+                <h2>EARTH</h2>
+                <div class="nasa-image-container">
+                    <img src="{{ nasa_epic.url }}" alt="Earth" class="nasa-image" loading="lazy" onerror="this.src='https://via.placeholder.com/400x400/001122/00ffff?text=EPIC'">
+                    <div class="nasa-title">{{ nasa_epic.caption }}</div>
+                </div>
+            </div>
+
+            <!-- NASA APOD -->
+            <div class="card" id="nasa-apod-card">
+                <h2>NASA APOD</h2>
+                <div class="nasa-image-container">
+                    {% if nasa_apod.media_type == 'video' %}
+                        <iframe src="{{ nasa_apod.url }}" class="nasa-image" frameborder="0" allowfullscreen></iframe>
+                    {% else %}
+                        <img src="{{ nasa_apod.url }}" alt="NASA" class="nasa-image" loading="lazy" onerror="this.src='https://via.placeholder.com/400x300/001122/00ffff?text=APOD'">
+                    {% endif %}
+                    <div class="nasa-title">{{ nasa_apod.title }}</div>
+                </div>
+            </div>
+
+            <!-- TAF -->
+            <div class="card" id="taf-card">
+                <h2>TAF</h2>
+                <div class="taf-content" id="taf-content">
+                    <span class="loading"></span>
+                </div>
+            </div>
+
+            <!-- NOTAM -->
+            <div class="card" id="notam-card">
+                <h2>NOTAM</h2>
+                <div class="notam-list" id="notam-list">
+                    <span class="loading"></span>
+                </div>
+            </div>
+        </main>
+
+        <nav>
+            <button onclick="location.href='/'">HOME</button>
+            <button onclick="location.href='/weather'">WETTER</button>
+            <button onclick="location.href='/flights'">FLÜGE</button>
+            <button class="strava-btn" onclick="location.href='/strava'">STRAVA</button>
+            <button onclick="location.href='/settings'">SETTINGS</button>
+        </nav>
+    </div>
+
+    <script>
+        // Update Date & Time
+        function updateDateTime() {
+            const now = new Date();
+            const dateStr = now.toLocaleDateString('de-DE', {
+                weekday: 'long',
+                day: '2-digit',
+                month: 'long',
+                year: 'numeric'
+            });
+            document.getElementById('date-time').textContent = dateStr.toUpperCase();
+
+            const timeStr = now.toLocaleTimeString('de-DE', {
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit'
+            });
+            document.getElementById('digital-clock').textContent = timeStr;
+        }
+
+        // Load Strava Widget
+// Load Strava Widget
+        async function loadStravaWidget() {
+            try {
+                const resp = await fetch('/api/strava');  // ← Korrigiert!
+                const data = await resp.json();
+                const stravaEl = document.getElementById('strava-content');
+
+                if (data.error) {
+                    stravaEl.innerHTML = '<div style="text-align: center; font-size: 0.5rem; opacity: 0.7;">Keine Daten</div>';
+                    return;
+                }
+
+                // Zeige Streak und Monats-KM
+                stravaEl.innerHTML = `
+                    <div class="strava-stat">
+                        <div class="strava-value">${data.streak} Wochen</div>
+                        <div class="strava-label">Streak</div>
+                    </div>
+                `;
+            } catch (error) {
+                console.error('Strava error:', error);
+                document.getElementById('strava-content').innerHTML = '<div style="text-align: center; font-size: 0.5rem;">Error</div>';
+            }
+        }
+
+        // Load TAF
+        async function loadTAF() {
+            try {
+                const resp = await fetch('/api/taf');
+                const data = await resp.json();
+                const tafEl = document.getElementById('taf-content');
+
+                if (data.raw) {
+                    tafEl.textContent = data.raw;
+                } else {
+                    tafEl.textContent = 'TAF N/A';
+                }
+            } catch (error) {
+                document.getElementById('taf-content').textContent = 'Error';
+            }
+        }
+
+        // Load Sun/Moon Times
+        async function loadAstro() {
+            try {
+                const resp = await fetch('/api/sunmoon');
+                const data = await resp.json();
+                document.getElementById('sunrise-time').textContent = data.sunrise;
+                document.getElementById('sunset-time').textContent = data.sunset;
+            } catch (error) {
+                document.getElementById('sunrise-time').textContent = 'Error';
+                document.getElementById('sunset-time').textContent = 'Error';
+            }
+        }
+
+        // Load NOTAMs
+        async function loadNOTAMs() {
+            try {
+                const resp = await fetch('/api/notams');
+                const data = await resp.json();
+                const notamEl = document.getElementById('notam-list');
+
+                if (data.notams && data.notams.length > 0) {
+                    notamEl.innerHTML = data.notams.map(n => `
+                        <div class="notam-item">
+                            <div class="notam-id">${n.id}</div>
+                            <div>${n.message}</div>
+                        </div>
+                    `).join('');
+                } else {
+                    notamEl.innerHTML = '<div style="text-align: center; opacity: 0.7; font-size: 0.5rem;">Keine aktiven NOTAMs</div>';
+                }
+            } catch (error) {
+                document.getElementById('notam-list').innerHTML = '<div style="color: #f00; font-size: 0.5rem;">Error</div>';
+            }
+        }
+
+        // Initialize
+        updateDateTime();
+        setInterval(updateDateTime, 1000);
+
+        loadTAF();
+        loadAstro();
+        loadNOTAMs();
+        loadStravaWidget();
+
+        // Auto-refresh every 10 minutes
+        setInterval(() => location.reload(), 600000);
+    </script>
+</body>
+</html>

@@ -1,0 +1,5 @@
+Flask
+httpx
+pytz
+python-dotenv
+stravalib==1.6.0

@@ -1,0 +1,627 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dino Details - Aviation Dashboard</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap');
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Orbitron', monospace;
+            background: #000;
+            color: #0ff;
+            overflow-x: hidden;
+            min-height: 100vh;
+            position: relative;
+        }
+
+        /* Animated Background */
+        .bg-grid {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background:
+                linear-gradient(rgba(0, 255, 255, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 255, 255, 0.03) 1px, transparent 1px);
+            background-size: 50px 50px;
+            animation: gridMove 20s linear infinite;
+            z-index: 0;
+        }
+
+        @keyframes gridMove {
+            0% { transform: translateY(0); }
+            100% { transform: translateY(50px); }
+        }
+
+        .scanline {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(transparent 50%, rgba(0, 255, 255, 0.03) 50%);
+            background-size: 100% 4px;
+            pointer-events: none;
+            animation: scan 8s linear infinite;
+            z-index: 999;
+        }
+
+        @keyframes scan {
+            0% { background-position: 0 0; }
+            100% { background-position: 0 100%; }
+        }
+
+        .container {
+            position: relative;
+            z-index: 1;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            padding: 0.6rem;
+            gap: 0.5rem;
+        }
+
+        header {
+            text-align: center;
+            padding: 0.4rem;
+            background: rgba(0, 255, 255, 0.05);
+            border: 2px solid #0ff;
+            border-radius: 6px;
+            box-shadow: 0 0 20px rgba(0, 255, 255, 0.3);
+        }
+
+        header h1 {
+            font-size: 1.2rem;
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            text-shadow: 0 0 10px #0ff, 0 0 20px #0ff;
+        }
+
+        .dino-hero {
+            background: rgba(0, 20, 40, 0.8);
+            border: 2px solid #0ff;
+            border-radius: 6px;
+            padding: 1rem;
+            text-align: center;
+            box-shadow: 0 0 20px rgba(0, 255, 255, 0.3);
+            margin-bottom: 0.5rem;
+        }
+
+        .dino-hero-image {
+            width: 100%;
+            max-width: 300px;
+            height: 200px;
+            object-fit: cover;
+            border-radius: 8px;
+            border: 2px solid #0ff;
+            box-shadow: 0 0 20px rgba(0, 255, 255, 0.5);
+            margin: 0 auto 1rem;
+            display: block;
+        }
+
+        .dino-hero-icon {
+            font-size: 4rem;
+            margin: 1rem 0;
+            animation: bounce 2s ease-in-out infinite;
+        }
+
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-15px); }
+        }
+
+        .dino-hero h2 {
+            font-size: 1.8rem;
+            color: #0ff;
+            margin-bottom: 0.3rem;
+            text-shadow: 0 0 15px #0ff;
+        }
+
+        .pronunciation {
+            font-size: 0.8rem;
+            color: #09f;
+            margin-bottom: 0.5rem;
+            font-style: italic;
+        }
+
+        .diet-badge {
+            display: inline-block;
+            padding: 0.3rem 0.8rem;
+            border-radius: 4px;
+            font-size: 0.7rem;
+            font-weight: 700;
+            margin-top: 0.5rem;
+        }
+
+        .carnivore {
+            background: rgba(255, 0, 0, 0.2);
+            color: #f00;
+            border: 2px solid #f00;
+        }
+
+        .herbivore {
+            background: rgba(0, 255, 0, 0.2);
+            color: #0f0;
+            border: 2px solid #0f0;
+        }
+
+        .piscivore {
+            background: rgba(0, 150, 255, 0.2);
+            color: #0af;
+            border: 2px solid #0af;
+        }
+
+        /* Size Comparison - Aviation Style! */
+        .size-comparison {
+            background: rgba(0, 20, 40, 0.8);
+            border: 2px solid #0ff;
+            border-radius: 6px;
+            padding: 1rem;
+            margin-bottom: 0.5rem;
+            box-shadow: 0 0 15px rgba(0, 255, 255, 0.3);
+        }
+
+        .size-comparison h3 {
+            color: #0ff;
+            font-size: 0.9rem;
+            margin-bottom: 0.8rem;
+            text-transform: uppercase;
+            text-align: center;
+        }
+
+        .comparison-visual {
+            display: flex;
+            align-items: flex-end;
+            justify-content: space-around;
+            padding: 1rem;
+            background: rgba(0, 50, 100, 0.2);
+            border-radius: 4px;
+            min-height: 150px;
+            position: relative;
+        }
+
+        .comparison-item {
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-end;
+        }
+
+        .comparison-icon {
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+            filter: drop-shadow(0 0 5px currentColor);
+        }
+
+        .comparison-bar {
+            width: 50px;
+            background: linear-gradient(180deg, #0ff, #0af);
+            border-radius: 4px 4px 0 0;
+            border: 2px solid #0ff;
+            position: relative;
+        }
+
+        .comparison-label {
+            font-size: 0.65rem;
+            margin-top: 0.5rem;
+            color: rgba(0, 255, 255, 0.8);
+        }
+
+        .comparison-value {
+            font-size: 0.6rem;
+            font-weight: 700;
+            color: #0ff;
+        }
+
+        /* Timeline */
+        .timeline-section {
+            background: rgba(0, 20, 40, 0.8);
+            border: 2px solid #0ff;
+            border-radius: 6px;
+            padding: 1rem;
+            margin-bottom: 0.5rem;
+            box-shadow: 0 0 15px rgba(0, 255, 255, 0.3);
+        }
+
+        .timeline-section h3 {
+            color: #0ff;
+            font-size: 0.9rem;
+            margin-bottom: 0.8rem;
+            text-transform: uppercase;
+            text-align: center;
+        }
+
+        .timeline {
+            position: relative;
+            padding: 1rem 0;
+        }
+
+        .timeline-bar {
+            width: 100%;
+            height: 40px;
+            background: linear-gradient(90deg, #ff00ff 0%, #ff00aa 33%, #00ffff 66%, #00ff00 100%);
+            border-radius: 20px;
+            border: 2px solid #0ff;
+            position: relative;
+            box-shadow: 0 0 15px rgba(0, 255, 255, 0.3);
+        }
+
+        .timeline-marker {
+            position: absolute;
+            top: -10px;
+            transform: translateX(-50%);
+            text-align: center;
+        }
+
+        .timeline-marker-icon {
+            font-size: 2rem;
+            animation: bounce 2s ease-in-out infinite;
+        }
+
+        .timeline-marker-label {
+            font-size: 0.6rem;
+            color: #0ff;
+            font-weight: 700;
+            margin-top: 0.3rem;
+            white-space: nowrap;
+        }
+
+        .timeline-labels {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 0.5rem;
+            font-size: 0.6rem;
+            color: rgba(0, 255, 255, 0.7);
+        }
+
+        /* Map */
+        .map-section {
+            background: rgba(0, 20, 40, 0.8);
+            border: 2px solid #0ff;
+            border-radius: 6px;
+            padding: 1rem;
+            margin-bottom: 0.5rem;
+            box-shadow: 0 0 15px rgba(0, 255, 255, 0.3);
+        }
+
+        .map-section h3 {
+            color: #0ff;
+            font-size: 0.9rem;
+            margin-bottom: 0.8rem;
+            text-transform: uppercase;
+            text-align: center;
+        }
+
+        #dino-map {
+            width: 100%;
+            height: 200px;
+            border-radius: 4px;
+            border: 2px solid #0ff;
+        }
+
+        /* Facts Grid */
+        .facts-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 0.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .fact-card {
+            background: rgba(0, 20, 40, 0.8);
+            border: 2px solid #0ff;
+            border-radius: 6px;
+            padding: 0.8rem;
+            box-shadow: 0 0 15px rgba(0, 255, 255, 0.3);
+            text-align: center;
+        }
+
+        .fact-card h3 {
+            color: #0ff;
+            font-size: 0.75rem;
+            margin-bottom: 0.5rem;
+            text-transform: uppercase;
+        }
+
+        .fact-card p {
+            font-size: 0.7rem;
+            line-height: 1.3;
+            opacity: 0.9;
+        }
+
+        .fact-icon {
+            font-size: 1.5rem;
+            margin-bottom: 0.3rem;
+        }
+
+        /* Fun Fact */
+        .fun-fact {
+            background: rgba(0, 20, 40, 0.8);
+            border: 2px solid #0ff;
+            border-radius: 6px;
+            padding: 1rem;
+            margin-bottom: 0.5rem;
+            box-shadow: 0 0 15px rgba(0, 255, 255, 0.3);
+        }
+
+        .fun-fact h3 {
+            color: #0ff;
+            font-size: 0.9rem;
+            margin-bottom: 0.5rem;
+            text-transform: uppercase;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+
+        .fun-fact p {
+            font-size: 0.75rem;
+            line-height: 1.5;
+            text-align: center;
+        }
+
+        nav {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 0.5rem;
+        }
+
+        nav button {
+            padding: 0.8rem;
+            font-family: 'Orbitron', monospace;
+            font-size: 0.8rem;
+            font-weight: 700;
+            background: rgba(0, 255, 255, 0.1);
+            color: #0ff;
+            border: 2px solid #0ff;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-transform: uppercase;
+            box-shadow: 0 0 10px rgba(0, 255, 255, 0.3);
+        }
+
+        nav button:hover {
+            background: rgba(0, 255, 255, 0.3);
+            transform: translateY(-2px);
+        }
+
+        @media (max-width: 800px) {
+            .comparison-visual {
+                min-height: 120px;
+            }
+
+            .comparison-icon {
+                font-size: 1.5rem;
+            }
+
+            .comparison-bar {
+                width: 40px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="bg-grid"></div>
+    <div class="scanline"></div>
+
+    <div class="container">
+        <header>
+            <h1>🦖 DINO DES TAGES</h1>
+        </header>
+
+        <div class="dino-hero">
+            <img src="{{ dino.image_url }}" alt="{{ dino.name }}" class="dino-hero-image" onerror="this.style.display='none'; document.querySelector('.dino-hero-icon').style.display='block';">
+            <div class="dino-hero-icon" style="display: none;">🦖</div>
+            <h2 id="dino-name">{{ dino.name }}</h2>
+            <div class="pronunciation" id="dino-pronunciation">{{ dino.pronunciation }}</div>
+            <div class="diet-badge" id="diet-badge">{{ dino.diet }}</div>
+        </div>
+
+        <!-- Facts Grid - moved here for better overview -->
+        <div class="facts-grid">
+            <div class="fact-card">
+                <div class="fact-icon">📏</div>
+                <h3>Länge</h3>
+                <p id="fact-length">{{ dino.length }}</p>
+            </div>
+            <div class="fact-card">
+                <div class="fact-icon">⚖️</div>
+                <h3>Gewicht</h3>
+                <p id="fact-weight">{{ dino.weight }}</p>
+            </div>
+            <div class="fact-card">
+                <div class="fact-icon">🕐</div>
+                <h3>Zeitalter</h3>
+                <p id="fact-period">{{ dino.period }}</p>
+            </div>
+            <div class="fact-card">
+                <div class="fact-icon">🦴</div>
+                <h3>Fossil</h3>
+                <p id="fact-fossil">{{ dino.fossil_info }}</p>
+            </div>
+        </div>
+
+        <!-- Size Comparison with Aviation Theme! -->
+        <div class="size-comparison">
+            <h3>✈️ GRÖẞENVERGLEICH</h3>
+            <div class="comparison-visual" id="size-comparison">
+                <!-- Will be filled by JavaScript -->
+            </div>
+        </div>
+
+        <!-- Timeline -->
+        <div class="timeline-section">
+            <h3>⏱️ ERDZEITALTER</h3>
+            <div class="timeline">
+                <div class="timeline-bar">
+                    <div class="timeline-marker" id="dino-timeline-marker">
+                        <div class="timeline-marker-icon">🦖</div>
+                        <div class="timeline-marker-label" id="timeline-label"></div>
+                    </div>
+                </div>
+                <div class="timeline-labels">
+                    <span>TRIAS<br>252-201 Mio</span>
+                    <span>JURA<br>201-145 Mio</span>
+                    <span>KREIDE<br>145-66 Mio</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Map -->
+        <div class="map-section">
+            <h3>🌍 FUNDORT</h3>
+            <div id="dino-map"></div>
+        </div>
+
+        <!-- Fun Fact -->
+        <div class="fun-fact">
+        <div class="fun-fact">
+            <h3><span>💡</span> FUN FACT</h3>
+            <p id="fun-fact-text">{{ dino.fun_fact }}</p>
+        </div>
+
+        <nav>
+            <button onclick="location.href='/'">⬅ ZURÜCK ZUM DASHBOARD</button>
+        </nav>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        // Dino data from Flask
+        const dinoData = {
+            name: "{{ dino.name }}",
+            length: "{{ dino.length }}",
+            weight: "{{ dino.weight }}",
+            period: "{{ dino.period }}",
+            location: "{{ dino.location }}",
+            diet: "{{ dino.diet }}"
+        };
+
+        // Set diet badge color
+        const dietBadge = document.getElementById('diet-badge');
+        if (dinoData.diet.includes('Fleisch')) {
+            dietBadge.className = 'diet-badge carnivore';
+        } else if (dinoData.diet.includes('Fisch')) {
+            dietBadge.className = 'diet-badge piscivore';
+        } else {
+            dietBadge.className = 'diet-badge herbivore';
+        }
+
+        // Size Comparison - Aviation Style!
+        function createSizeComparison() {
+            const lengthStr = dinoData.length;
+            let dinoLength = 10; // default
+
+            // Parse length from string
+            const match = lengthStr.match(/(\d+(?:\.\d+)?)/);
+            if (match) {
+                dinoLength = parseFloat(match[1]);
+            }
+
+            // Reference sizes
+            const references = [
+                { name: 'Mensch', size: 1.8, icon: '🚶', unit: 'm' },
+                { name: 'Auto', size: 4.5, icon: '🚗', unit: 'm' },
+                { name: 'Cessna', size: 8.3, icon: '✈️', unit: 'm' },
+                { name: dinoData.name.split(' ')[0], size: dinoLength, icon: '🦖', unit: 'm' }
+            ];
+
+            // Sort and take relevant ones
+            references.sort((a, b) => a.size - b.size);
+
+            // Find max size for scaling
+            const maxSize = Math.max(...references.map(r => r.size));
+
+            const comparisonHTML = references.map(ref => {
+                const heightPercent = (ref.size / maxSize) * 100;
+                const isHighlight = ref.icon === '🦖';
+
+                return `
+                    <div class="comparison-item">
+                        <div class="comparison-icon">${ref.icon}</div>
+                        <div class="comparison-bar" style="height: ${heightPercent}px; ${isHighlight ? 'background: linear-gradient(180deg, #ff00ff, #ff00aa); border-color: #ff00ff;' : ''}"></div>
+                        <div class="comparison-label">${ref.name}</div>
+                        <div class="comparison-value">${ref.size}${ref.unit}</div>
+                    </div>
+                `;
+            }).join('');
+
+            document.getElementById('size-comparison').innerHTML = comparisonHTML;
+        }
+
+        // Timeline positioning
+        function positionTimeline() {
+            const period = dinoData.period.toLowerCase();
+            let position = 50; // default middle
+
+            if (period.includes('trias')) {
+                position = 15;
+            } else if (period.includes('jura')) {
+                position = 50;
+            } else if (period.includes('kreide')) {
+                position = 85;
+            }
+
+            const marker = document.getElementById('dino-timeline-marker');
+            marker.style.left = position + '%';
+
+            document.getElementById('timeline-label').textContent = dinoData.period.split('(')[0].trim();
+        }
+
+        // Map initialization
+        function initMap() {
+            const map = L.map('dino-map', {
+                zoomControl: false,
+                attributionControl: false
+            }).setView([30, 0], 2);
+
+            L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+                maxZoom: 19
+            }).addTo(map);
+
+            // Location markers based on region
+            const locations = {
+                'Nordamerika': [40, -100],
+                'Nordafrika': [25, 15],
+                'Mongolei, China': [45, 105],
+                'Afrika': [0, 20],
+                'default': [30, 0]
+            };
+
+            const coords = locations[dinoData.location] || locations['default'];
+
+            const dinoIcon = L.divIcon({
+                html: '<div style="font-size: 32px; filter: drop-shadow(0 0 10px #0ff);">🦖</div>',
+                className: 'dino-map-marker',
+                iconSize: [32, 32],
+                iconAnchor: [16, 32]
+            });
+
+            L.marker(coords, { icon: dinoIcon })
+                .addTo(map)
+                .bindPopup(`<b style="color: #0ff;">${dinoData.location}</b><br><span style="color: #0ff; font-size: 0.8rem;">Fundort</span>`);
+
+            map.setView(coords, 3);
+        }
+
+        // Initialize everything
+        createSizeComparison();
+        positionTimeline();
+        initMap();
+    </script>
+</body>
+</html>

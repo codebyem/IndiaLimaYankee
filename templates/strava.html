@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Strava Stats - Aviation Dashboard</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap');
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Orbitron', monospace;
+            background: #000;
+            color: #fc4c02;
+            overflow-x: hidden;
+            min-height: 100vh;
+            position: relative;
+        }
+
+        .bg-grid {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background:
+                linear-gradient(rgba(252, 76, 2, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(252, 76, 2, 0.03) 1px, transparent 1px);
+            background-size: 50px 50px;
+            animation: gridMove 20s linear infinite;
+            z-index: 0;
+        }
+
+        @keyframes gridMove {
+            0% { transform: translateY(0); }
+            100% { transform: translateY(50px); }
+        }
+
+        .scanline {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(transparent 50%, rgba(252, 76, 2, 0.03) 50%);
+            background-size: 100% 4px;
+            pointer-events: none;
+            animation: scan 8s linear infinite;
+            z-index: 999;
+        }
+
+        @keyframes scan {
+            0% { background-position: 0 0; }
+            100% { background-position: 0 100%; }
+        }
+
+        .container {
+            position: relative;
+            z-index: 1;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            padding: 0.6rem;
+            gap: 0.5rem;
+        }
+
+        header {
+            text-align: center;
+            padding: 0.4rem;
+            background: rgba(252, 76, 2, 0.1);
+            border: 2px solid #fc4c02;
+            border-radius: 6px;
+            box-shadow: 0 0 20px rgba(252, 76, 2, 0.4);
+        }
+
+        header h1 {
+            font-size: 1.2rem;
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            text-shadow: 0 0 10px #fc4c02, 0 0 20px #fc4c02;
+        }
+
+        /* Hero Stats */
+        .hero-stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 0.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .hero-card {
+            background: linear-gradient(135deg, rgba(252, 76, 2, 0.2), rgba(0, 20, 40, 0.8));
+            border: 2px solid #fc4c02;
+            border-radius: 8px;
+            padding: 1rem;
+            text-align: center;
+            box-shadow: 0 0 20px rgba(252, 76, 2, 0.3);
+            animation: fadeIn 0.5s ease-in;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .hero-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 3px;
+            background: linear-gradient(90deg, transparent, #fc4c02, transparent);
+            animation: borderGlow 3s linear infinite;
+        }
+
+        @keyframes borderGlow {
+            0%, 100% { opacity: 0.5; }
+            50% { opacity: 1; }
+        }
+
+        .hero-icon {
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+            animation: bounce 2s ease-in-out infinite;
+        }
+
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+
+        .hero-value {
+            font-size: 2.2rem;
+            font-weight: 900;
+            color: #fc4c02;
+            text-shadow: 0 0 20px #fc4c02;
+            margin-bottom: 0.3rem;
+        }
+
+        .hero-label {
+            font-size: 0.8rem;
+            color: rgba(252, 76, 2, 0.8);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        /* Latest Activity */
+        .latest-activity {
+            background: rgba(0, 20, 40, 0.8);
+            border: 2px solid #fc4c02;
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 0.5rem;
+            box-shadow: 0 0 20px rgba(252, 76, 2, 0.3);
+        }
+
+        .latest-activity h2 {
+            font-size: 1rem;
+            color: #fc4c02;
+            margin-bottom: 0.8rem;
+            text-transform: uppercase;
+            text-shadow: 0 0 10px #fc4c02;
+        }
+
+        .activity-details {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 0.8rem;
+        }
+
+        .activity-stat {
+            text-align: center;
+            background: rgba(252, 76, 2, 0.05);
+            padding: 0.8rem;
+            border-radius: 6px;
+            border: 1px solid rgba(252, 76, 2, 0.3);
+        }
+
+        .activity-stat-icon {
+            font-size: 1.5rem;
+            margin-bottom: 0.3rem;
+        }
+
+        .activity-stat-value {
+            font-size: 1.3rem;
+            font-weight: 900;
+            color: #fc4c02;
+            margin-bottom: 0.2rem;
+        }
+
+        .activity-stat-label {
+            font-size: 0.6rem;
+            color: rgba(252, 76, 2, 0.7);
+            text-transform: uppercase;
+        }
+
+        /* Weekly Stats */
+        .weekly-section {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .stats-card {
+            background: rgba(0, 20, 40, 0.8);
+            border: 2px solid #fc4c02;
+            border-radius: 8px;
+            padding: 1rem;
+            box-shadow: 0 0 20px rgba(252, 76, 2, 0.3);
+        }
+
+        .stats-card h3 {
+            font-size: 0.9rem;
+            color: #fc4c02;
+            margin-bottom: 0.8rem;
+            text-transform: uppercase;
+            text-shadow: 0 0 10px #fc4c02;
+        }
+
+        .stat-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.5rem;
+            margin-bottom: 0.5rem;
+            background: rgba(252, 76, 2, 0.05);
+            border-radius: 6px;
+            border: 1px solid rgba(252, 76, 2, 0.2);
+        }
+
+        .stat-row:last-child {
+            margin-bottom: 0;
+        }
+
+        .stat-type {
+            font-size: 0.8rem;
+            color: rgba(252, 76, 2, 0.9);
+        }
+
+        .stat-value-small {
+            font-size: 1.1rem;
+            font-weight: 900;
+            color: #fc4c02;
+        }
+
+        /* Activity Heatmap */
+        .heatmap {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 0.3rem;
+            margin-top: 0.8rem;
+        }
+
+        .heatmap-day {
+            aspect-ratio: 1;
+            border-radius: 4px;
+            border: 1px solid rgba(252, 76, 2, 0.3);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.5rem;
+        }
+
+        .heatmap-day.active {
+            background: rgba(252, 76, 2, 0.4);
+            border-color: #fc4c02;
+            box-shadow: 0 0 10px rgba(252, 76, 2, 0.5);
+        }
+
+        .heatmap-day.inactive {
+            background: rgba(128, 128, 128, 0.1);
+            border-color: rgba(128, 128, 128, 0.3);
+        }
+
+        .heatmap-label {
+            font-size: 0.6rem;
+            margin-bottom: 0.2rem;
+        }
+
+        /* Records */
+        .records-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 0.5rem;
+        }
+
+        .record-card {
+            background: rgba(252, 76, 2, 0.05);
+            border: 2px solid rgba(252, 76, 2, 0.3);
+            border-radius: 6px;
+            padding: 0.8rem;
+            text-align: center;
+        }
+
+        .record-icon {
+            font-size: 1.8rem;
+            margin-bottom: 0.3rem;
+        }
+
+        .record-value {
+            font-size: 1.2rem;
+            font-weight: 900;
+            color: #fc4c02;
+            margin-bottom: 0.2rem;
+        }
+
+        .record-label {
+            font-size: 0.6rem;
+            color: rgba(252, 76, 2, 0.7);
+            text-transform: uppercase;
+        }
+
+        /* Navigation */
+        nav {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 0.5rem;
+        }
+
+        nav button {
+            padding: 0.8rem;
+            font-family: 'Orbitron', monospace;
+            font-size: 0.8rem;
+            font-weight: 700;
+            background: rgba(252, 76, 2, 0.1);
+            color: #fc4c02;
+            border: 2px solid #fc4c02;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-transform: uppercase;
+            box-shadow: 0 0 10px rgba(252, 76, 2, 0.3);
+        }
+
+        nav button:hover {
+            background: rgba(252, 76, 2, 0.3);
+            transform: translateY(-2px);
+        }
+
+        .loading-spinner {
+            text-align: center;
+            padding: 2rem;
+            font-size: 1rem;
+        }
+
+        .loading-spinner::after {
+            content: '⟳';
+            display: inline-block;
+            animation: spin 1s linear infinite;
+            font-size: 2rem;
+            color: #fc4c02;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="bg-grid"></div>
+    <div class="scanline"></div>
+
+    <div class="container">
+        <header>
+            <h1>STRAVA STATISTICS</h1>
+        </header>
+
+        <!-- Hero Stats -->
+        <div class="hero-stats">
+            <div class="hero-card">
+                <div class="hero-icon">STREAK</div>
+                <div class="hero-value" id="streak-value">{{ strava.streak if strava else '--' }}</div>
+                <div class="hero-label">Tage Streak</div>
+            </div>
+            <div class="hero-card">
+                <div class="hero-icon">MONTH</div>
+                <div class="hero-value" id="month-distance">{{ strava.month_distance if strava else '--' }}</div>
+                <div class="hero-label">KM Dieser Monat</div>
+            </div>
+            <div class="hero-card">
+                <div class="hero-icon">WEEK</div>
+                <div class="hero-value" id="week-activities">{{ strava.week_count if strava else '--' }}</div>
+                <div class="hero-label">Aktivitäten/Woche</div>
+            </div>
+        </div>
+
+        <!-- Latest Activity -->
+        <div class="latest-activity">
+            <h2>LETZTE AKTIVITÄT</h2>
+            <div class="activity-details" id="latest-activity">
+                <div class="activity-stat">
+                    <div class="activity-stat-icon">DIST</div>
+                    <div class="activity-stat-value" id="latest-distance">--</div>
+                    <div class="activity-stat-label">Distanz (km)</div>
+                </div>
+                <div class="activity-stat">
+                    <div class="activity-stat-icon">TIME</div>
+                    <div class="activity-stat-value" id="latest-time">--</div>
+                    <div class="activity-stat-label">Zeit</div>
+                </div>
+                <div class="activity-stat">
+                    <div class="activity-stat-icon">PACE</div>
+                    <div class="activity-stat-value" id="latest-pace">--</div>
+                    <div class="activity-stat-label">Pace (/km)</div>
+                </div>
+                <div class="activity-stat">
+                    <div class="activity-stat-icon">ELEV</div>
+                    <div class="activity-stat-value" id="latest-elevation">--</div>
+                    <div class="activity-stat-label">Höhenmeter</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Weekly Section -->
+        <div class="weekly-section">
+            <!-- Weekly Stats by Activity Type -->
+            <div class="stats-card">
+                <h3>DIESE WOCHE</h3>
+                <div id="weekly-stats">
+                    <div class="stat-row">
+                        <span class="stat-type">Laufen</span>
+                        <span class="stat-value-small" id="week-run">-- km</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-type">Radfahren</span>
+                        <span class="stat-value-small" id="week-ride">-- km</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-type">Schwimmen</span>
+                        <span class="stat-value-small" id="week-swim">-- km</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-type">Gesamt</span>
+                        <span class="stat-value-small" id="week-total">-- km</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Activity Heatmap -->
+            <div class="stats-card">
+                <h3>AKTIVITÄTS-HEATMAP</h3>
+                <div class="heatmap" id="activity-heatmap">
+                    <!-- Will be filled by JavaScript -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Personal Records -->
+        <div class="stats-card">
+            <h3>PERSÖNLICHE REKORDE</h3>
+            <div class="records-grid" id="records-grid">
+                <div class="record-card">
+                    <div class="record-icon">LONGEST</div>
+                    <div class="record-value" id="record-longest">--</div>
+                    <div class="record-label">Längste Distanz</div>
+                </div>
+                <div class="record-card">
+                    <div class="record-icon">FASTEST</div>
+                    <div class="record-value" id="record-fastest">--</div>
+                    <div class="record-label">Schnellste 5K</div>
+                </div>
+                <div class="record-card">
+                    <div class="record-icon">CLIMB</div>
+                    <div class="record-value" id="record-elevation">--</div>
+                    <div class="record-label">Meiste Höhenmeter</div>
+                </div>
+            </div>
+        </div>
+
+        <nav>
+            <button onclick="location.href='/'">ZURÜCK ZUM DASHBOARD</button>
+        </nav>
+    </div>
+
+    <script>
+        async function loadStravaStats() {
+            try {
+                const resp = await fetch('/api/strava/detailed');
+                const data = await resp.json();
+
+                if (data.error) {
+                    console.error('Strava error:', data.error);
+                    return;
+                }
+
+                // Hero Stats
+                document.getElementById('streak-value').textContent = data.streak || '--';
+                document.getElementById('month-distance').textContent = data.month_distance || '--';
+                document.getElementById('week-activities').textContent = data.week_count || '--';
+
+                // Latest Activity
+                if (data.latest) {
+                    document.getElementById('latest-distance').textContent = data.latest.distance;
+                    document.getElementById('latest-time').textContent = data.latest.time;
+                    document.getElementById('latest-pace').textContent = data.latest.pace;
+                    document.getElementById('latest-elevation').textContent = data.latest.elevation + 'm';
+                }
+
+                // Weekly Stats
+                if (data.weekly) {
+                    document.getElementById('week-run').textContent = data.weekly.run + ' km';
+                    document.getElementById('week-ride').textContent = data.weekly.ride + ' km';
+                    document.getElementById('week-swim').textContent = data.weekly.swim + ' km';
+                    document.getElementById('week-total').textContent = data.weekly.total + ' km';
+                }
+
+                // Heatmap
+                if (data.heatmap) {
+                    const heatmapEl = document.getElementById('activity-heatmap');
+                    const days = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'];
+                    
+                    heatmapEl.innerHTML = data.heatmap.map((active, i) => `
+                        <div class="heatmap-day ${active ? 'active' : 'inactive'}">
+                            <div class="heatmap-label">${days[i]}</div>
+                            <div>${active ? 'Y' : 'N'}</div>
+                        </div>
+                    `).join('');
+                }
+
+                // Records
+                if (data.records) {
+                    document.getElementById('record-longest').textContent = data.records.longest_run || '--';
+                    document.getElementById('record-fastest').textContent = data.records.fastest_5k || '--';
+                    document.getElementById('record-elevation').textContent = data.records.max_elevation || '--';
+                }
+
+            } catch (error) {
+                console.error('Error loading Strava stats:', error);
+            }
+        }
+
+        loadStravaStats();
+    </script>
+</body>
+</html>
