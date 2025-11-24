@@ -24,7 +24,6 @@ __pycache__/
 
 # User data files
 settings.json
-dinos.json
 
 # OS files
 .DS_Store
