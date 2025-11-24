@@ -1,8 +1,8 @@
-# Aviation Dashboard 🛩️
+# Aviation Dashboard
 
 A Flask-based aviation dashboard featuring real-time METAR/TAF weather data, NASA imagery (APOD & EPIC), flight tracking, and Strava integration. Optimized for Raspberry Pi deployment.
 
-## Quick Start (Raspberry Pi) 🥧
+## Quick Start (Raspberry Pi)
 
 ### Clone from GitHub:
 ```bash
@@ -32,46 +32,29 @@ sudo bash install_service.sh
 # Access it at: http://raspberry-pi-ip:5000
 ```
 
-## API Keys Required 🔑
+## API Keys Required
 
 Get your free API keys from:
 - **NASA API**: https://api.nasa.gov/
 - **AVWX Weather**: https://account.avwx.rest/
 - **Strava** (optional): https://www.strava.com/settings/api
 
-## Features ✨
+## Features
 
-### 1. **Caching System** ⚡
+### 1. **Caching System**
 - METAR: 5 Minuten Cache
 - TAF: 10 Minuten Cache
 - NASA APOD: 1 Stunde Cache
 - NASA EPIC: 1 Stunde Cache
 - Sonnenauf-/untergang: 1 Stunde Cache
 
-**Vorteile:**
-- Reduziert API-Calls massiv
-- Schnellere Response-Zeiten
-- Schont API-Limits
-- Weniger Netzwerk-Traffic
-
-### 2. **Environment Variables** 🔐
-- API Keys nicht mehr im Code
-- Sichere Konfiguration
-- Einfaches Deployment
-- Koordinaten konfigurierbar
-
-### 3. **Logging System** 📝
+### 3. **Logging System**
 - Detaillierte Logs in `aviation_dashboard.log`
 - Request-Timing
 - Error-Tracking
 - Debug-Informationen
 
-### 4. **Neue API Endpoints** 🚀
-- `/api/health` - System Health Check
-- `/api/config` - Frontend Konfiguration
-- `/api/refresh` - Manuelles Cache-Leeren
-
-## Installation 📦
+## Installation�
 
 ### 1. Dependencies installieren:
 ```bash
@@ -92,7 +75,7 @@ nano .env
 python app_improved.py
 ```
 
-## Environment Variables (.env) 🔧
+## Environment Variables (.env)
 
 ```env
 # API Keys
@@ -108,7 +91,7 @@ DINO_DATA_FILE=dinos.json
 SETTINGS_FILE=settings.json
 ```
 
-## Cache-Verwaltung 🗑️
+## Cache-Verwaltung
 
 ### Automatisches Caching:
 Alle API-Calls werden automatisch gecacht basierend auf der konfigurierten Zeit.
@@ -126,7 +109,7 @@ curl http://localhost:5000/api/refresh
 - Manuellem Refresh
 - Server-Neustart
 
-## Logging 📊
+## Logging
 
 ### Log-Datei: `aviation_dashboard.log`
 
@@ -144,7 +127,7 @@ curl http://localhost:5000/api/refresh
 2025-01-15 10:31:00 - __main__ - INFO - Airport changed to: EDDL, cache cleared
 ```
 
-## Health Check Endpoint 🏥
+## Health Check Endpoint
 
 **Prüft Status aller APIs:**
 ```bash
@@ -163,137 +146,4 @@ curl http://localhost:5000/api/health
 }
 ```
 
-## Performance Verbesserungen 🚀
-
-### Vorher (ohne Cache):
-- Jeder Seitenaufruf → 4-5 API-Calls
-- Response-Zeit: ~2-3 Sekunden
-- API-Limits schnell erreicht
-
-### Nachher (mit Cache):
-- Cache Hits → 0 API-Calls
-- Response-Zeit: ~50-200ms
-- API-Limits geschont
-
-## Neue API-Endpunkte
-
-### `/api/config`
-Frontend-Konfiguration:
-```json
-{
-  "refresh_intervals": {
-    "metar": 300000,
-    "flights": 30000,
-    "weather": 300000,
-    "apod": 3600000
-  },
-  "coordinates": {
-    "lat": 51.963,
-    "lon": 8.534
-  }
-}
-```
-
-### `/api/health`
-System-Status:
-```json
-{
-  "status": "ok",
-  "services": {
-    "nasa": "ok",
-    "avwx": "ok"
-  }
-}
-```
-
-### `/api/refresh`
-Cache leeren und alle Daten neu laden:
-```bash
-curl http://localhost:5000/api/refresh
-```
-
-## Sicherheit 🔒
-
-### API Keys:
-- ✅ Nicht mehr im Code
-- ✅ In .env-Datei (nicht versioniert)
-- ✅ In Logs maskiert (`***KEY`)
-
-### .gitignore ergänzen:
-```
-.env
-*.log
-settings.json
-```
-
-## Troubleshooting 🔧
-
-### Problem: "Module not found: dotenv"
-```bash
-pip install python-dotenv
-```
-
-### Problem: API Keys werden nicht geladen
-```bash
-# Prüfen ob .env existiert
-ls -la .env
-
-# .env Datei prüfen
-cat .env
-```
-
-### Problem: Cache wird nicht geleert
-```bash
-# Server neu starten
-# ODER
-curl http://localhost:5000/api/refresh
-```
-
-## Raspberry Pi Management 🥧
-
-### Service Management:
-```bash
-# Start the dashboard
-sudo systemctl start aviation-dashboard
-
-# Stop the dashboard
-sudo systemctl stop aviation-dashboard
-
-# Restart the dashboard
-sudo systemctl restart aviation-dashboard
-
-# View service status
-sudo systemctl status aviation-dashboard
-
-# View live logs
-sudo journalctl -u aviation-dashboard -f
-```
-
-### Accessing the Dashboard:
-- **Local**: http://localhost:5000
-- **Network**: http://YOUR_PI_IP:5000
-- Find your Pi's IP: `hostname -I`
-
-## Cache-Zeiten anpassen 🕐
-
-Im Code `app_improved.py`:
-
-```python
-@timed_cache(seconds=300)  # 5 Minuten
-def fetch_metar(station="EDLP"):
-    ...
-
-# Ändern zu z.B. 10 Minuten:
-@timed_cache(seconds=600)
-```
-
-## Support 💬
-
-Bei Problemen:
-1. Log-Datei prüfen: `cat aviation_dashboard.log`
-2. Health-Check: `curl http://localhost:5000/api/health`
-3. Environment Variables prüfen: `.env` Datei
-
----
-
-**Viel Spaß mit deinem Aviation Dashboard! ✈️🦖🌌**
+**Viel Spaß mit meinem Aviation Dashboard! ✈️🦖🌌**
