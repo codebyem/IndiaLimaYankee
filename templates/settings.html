@@ -21,9 +21,10 @@
             word-wrap: normal;
             white-space: nowrap;
             direction: ltr;
-            color: #0ff;
+            color: var(--text-primary);
             vertical-align: middle;
-            text-shadow: 0 0 10px #0ff;
+            text-shadow: 0 0 10px var(--border-glow);
+            transition: all 0.3s ease;
         }
 
         * {
@@ -32,13 +33,52 @@
             box-sizing: border-box;
         }
 
+        :root {
+            /* Dark Mode (Default) */
+            --bg-primary: #000;
+            --bg-secondary: rgba(0, 20, 40, 0.8);
+            --text-primary: #0ff;
+            --text-secondary: rgba(0, 255, 255, 0.7);
+            --border-color: #0ff;
+            --border-glow: rgba(0, 255, 255, 0.3);
+            --grid-color: rgba(0, 255, 255, 0.03);
+            --scanline-color: rgba(0, 255, 255, 0.03);
+            --success-color: #0f0;
+            --success-bg: rgba(0, 255, 0, 0.05);
+            --success-border: rgba(0, 255, 0, 0.3);
+            --error-color: #f00;
+            --input-bg: rgba(0, 20, 40, 0.9);
+            --button-bg: rgba(0, 255, 255, 0.1);
+            --button-hover: rgba(0, 255, 255, 0.3);
+        }
+
+        body.light-mode {
+            /* Light Mode */
+            --bg-primary: #f0f4f8;
+            --bg-secondary: rgba(255, 255, 255, 0.95);
+            --text-primary: #1a365d;
+            --text-secondary: #4a5568;
+            --border-color: #3182ce;
+            --border-glow: rgba(49, 130, 206, 0.3);
+            --grid-color: rgba(49, 130, 206, 0.05);
+            --scanline-color: transparent;
+            --success-color: #22543d;
+            --success-bg: rgba(72, 187, 120, 0.1);
+            --success-border: rgba(72, 187, 120, 0.4);
+            --error-color: #c53030;
+            --input-bg: rgba(255, 255, 255, 0.95);
+            --button-bg: rgba(49, 130, 206, 0.1);
+            --button-hover: rgba(49, 130, 206, 0.2);
+        }
+
         body {
             font-family: 'Orbitron', monospace;
-            background: #000;
-            color: #0ff;
+            background: var(--bg-primary);
+            color: var(--text-primary);
             overflow: hidden;
             height: 100vh;
             position: relative;
+            transition: all 0.5s ease;
         }
 
         /* Animated Background */
@@ -49,11 +89,12 @@
             width: 100%;
             height: 100%;
             background:
-                linear-gradient(rgba(0, 255, 255, 0.03) 1px, transparent 1px),
-                linear-gradient(90deg, rgba(0, 255, 255, 0.03) 1px, transparent 1px);
+                linear-gradient(var(--grid-color) 1px, transparent 1px),
+                linear-gradient(90deg, var(--grid-color) 1px, transparent 1px);
             background-size: 50px 50px;
             animation: gridMove 20s linear infinite;
             z-index: 0;
+            transition: all 0.5s ease;
         }
 
         @keyframes gridMove {
@@ -67,11 +108,12 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background: linear-gradient(transparent 50%, rgba(0, 255, 255, 0.03) 50%);
+            background: linear-gradient(transparent 50%, var(--scanline-color) 50%);
             background-size: 100% 4px;
             pointer-events: none;
             animation: scan 8s linear infinite;
             z-index: 999;
+            transition: all 0.5s ease;
         }
 
         @keyframes scan {
@@ -92,10 +134,11 @@
         header {
             text-align: center;
             padding: 0.3rem;
-            background: rgba(0, 255, 255, 0.05);
-            border: 2px solid #0ff;
+            background: var(--button-bg);
+            border: 2px solid var(--border-color);
             border-radius: 6px;
-            box-shadow: 0 0 20px rgba(0, 255, 255, 0.3);
+            box-shadow: 0 0 20px var(--border-glow);
+            transition: all 0.3s ease;
         }
 
         header h1 {
@@ -103,7 +146,9 @@
             font-weight: 900;
             text-transform: uppercase;
             letter-spacing: 1px;
-            text-shadow: 0 0 10px #0ff;
+            text-shadow: 0 0 10px var(--border-glow);
+            color: var(--text-primary);
+            transition: all 0.3s ease;
         }
 
         main {
@@ -116,19 +161,21 @@
         }
 
         .settings-section {
-            background: rgba(0, 20, 40, 0.8);
-            border: 2px solid #0ff;
+            background: var(--bg-secondary);
+            border: 2px solid var(--border-color);
             border-radius: 6px;
             padding: 1rem;
-            box-shadow: 0 0 15px rgba(0, 255, 255, 0.3);
+            box-shadow: 0 0 15px var(--border-glow);
+            transition: all 0.3s ease;
         }
 
         .settings-section h2 {
             font-size: 0.9rem;
-            color: #0ff;
+            color: var(--text-primary);
             margin-bottom: 1rem;
             text-transform: uppercase;
             letter-spacing: 1px;
+            transition: all 0.3s ease;
         }
 
         .setting-item {
@@ -137,34 +184,150 @@
 
         .setting-label {
             font-size: 0.7rem;
-            color: #0ff;
+            color: var(--text-primary);
             margin-bottom: 0.5rem;
             display: block;
             text-transform: uppercase;
+            transition: all 0.3s ease;
         }
 
         .setting-description {
             font-size: 0.6rem;
-            color: rgba(0, 255, 255, 0.7);
+            color: var(--text-secondary);
             margin-bottom: 0.5rem;
+            transition: all 0.3s ease;
+        }
+
+        /* MODE TOGGLE STYLING */
+        .mode-toggle-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 1rem 0;
+        }
+
+        .mode-toggle-checkbox {
+            display: none;
+        }
+
+        .mode-toggle-label {
+            position: relative;
+            display: inline-block;
+            width: 100px;
+            height: 50px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.4s ease;
+            box-shadow: 0 0 20px rgba(0, 255, 255, 0.3);
+            border: 2px solid #0ff;
+        }
+
+        .mode-toggle-inner {
+            position: absolute;
+            top: 50%;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            transform: translateY(-50%);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 10px;
+        }
+
+        .mode-icon {
+            font-size: 1.5rem;
+            transition: all 0.4s ease;
+            z-index: 1;
+        }
+
+        .mode-icon.sun {
+            opacity: 0.3;
+            transform: rotate(0deg);
+        }
+
+        .mode-icon.moon {
+            opacity: 1;
+            transform: rotate(0deg);
+        }
+
+        .mode-toggle-switch {
+            position: absolute;
+            top: 4px;
+            left: 4px;
+            width: 40px;
+            height: 40px;
+            background: radial-gradient(circle, #f5f5f5 0%, #e0e0e0 100%);
+            border-radius: 50%;
+            transition: all 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+            box-shadow:
+                0 0 10px rgba(255, 255, 255, 0.5),
+                inset 0 2px 4px rgba(0, 0, 0, 0.2);
+            z-index: 2;
+        }
+
+        /* CHECKED STATE - Light Mode */
+        .mode-toggle-checkbox:checked + .mode-toggle-label {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+
+        .mode-toggle-checkbox:checked + .mode-toggle-label .mode-toggle-switch {
+            left: calc(100% - 44px);
+            background: radial-gradient(circle, #FFD700 0%, #FFA500 100%);
+            box-shadow:
+                0 0 20px rgba(255, 215, 0, 0.8),
+                inset 0 2px 4px rgba(0, 0, 0, 0.2);
+            animation: pulse 2s infinite;
+        }
+
+        .mode-toggle-checkbox:checked + .mode-toggle-label .mode-icon.sun {
+            opacity: 1;
+            transform: rotate(180deg);
+        }
+
+        .mode-toggle-checkbox:checked + .mode-toggle-label .mode-icon.moon {
+            opacity: 0.3;
+            transform: rotate(-180deg);
+        }
+
+        @keyframes pulse {
+            0%, 100% {
+                box-shadow:
+                    0 0 20px rgba(255, 215, 0, 0.8),
+                    inset 0 2px 4px rgba(0, 0, 0, 0.2);
+            }
+            50% {
+                box-shadow:
+                    0 0 30px rgba(255, 215, 0, 1),
+                    0 0 40px rgba(255, 165, 0, 0.5),
+                    inset 0 2px 4px rgba(0, 0, 0, 0.2);
+            }
+        }
+
+        /* Hover effect */
+        .mode-toggle-label:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 30px rgba(0, 255, 255, 0.6);
         }
 
         input[type="text"] {
             width: 100%;
             padding: 0.6rem;
-            background: rgba(0, 20, 40, 0.9);
-            border: 2px solid #0ff;
+            background: var(--input-bg);
+            border: 2px solid var(--border-color);
             border-radius: 4px;
-            color: #0ff;
+            color: var(--text-primary);
             font-family: 'Orbitron', monospace;
             font-size: 0.8rem;
             text-transform: uppercase;
-            box-shadow: 0 0 10px rgba(0, 255, 255, 0.3);
+            box-shadow: 0 0 10px var(--border-glow);
+            transition: all 0.3s ease;
         }
 
         input[type="text"]:focus {
             outline: none;
-            box-shadow: 0 0 20px rgba(0, 255, 255, 0.6);
+            box-shadow: 0 0 20px var(--border-glow);
         }
 
         .button-group {
@@ -179,20 +342,20 @@
             font-family: 'Orbitron', monospace;
             font-size: 0.7rem;
             font-weight: 700;
-            background: rgba(0, 255, 255, 0.1);
-            color: #0ff;
-            border: 2px solid #0ff;
+            background: var(--button-bg);
+            color: var(--text-primary);
+            border: 2px solid var(--border-color);
             border-radius: 4px;
             cursor: pointer;
             transition: all 0.2s;
             text-transform: uppercase;
             letter-spacing: 0.5px;
-            box-shadow: 0 0 10px rgba(0, 255, 255, 0.3);
+            box-shadow: 0 0 10px var(--border-glow);
         }
 
         button:hover {
-            background: rgba(0, 255, 255, 0.3);
-            box-shadow: 0 0 20px rgba(0, 255, 255, 0.6);
+            background: var(--button-hover);
+            box-shadow: 0 0 20px var(--border-glow);
         }
 
         button:active {
@@ -200,9 +363,9 @@
         }
 
         button.save-btn {
-            background: rgba(0, 255, 0, 0.1);
-            border-color: #0f0;
-            color: #0f0;
+            background: var(--success-bg);
+            border-color: var(--success-color);
+            color: var(--success-color);
         }
 
         button.save-btn:hover {
@@ -212,12 +375,13 @@
 
         .current-value {
             font-size: 0.7rem;
-            color: #0f0;
+            color: var(--success-color);
             margin-top: 0.3rem;
             padding: 0.4rem;
-            background: rgba(0, 255, 0, 0.05);
-            border: 1px solid rgba(0, 255, 0, 0.3);
+            background: var(--success-bg);
+            border: 1px solid var(--success-border);
             border-radius: 4px;
+            transition: all 0.3s ease;
         }
 
         .message {
@@ -230,15 +394,15 @@
         }
 
         .message.success {
-            background: rgba(0, 255, 0, 0.1);
-            border: 1px solid #0f0;
-            color: #0f0;
+            background: var(--success-bg);
+            border: 1px solid var(--success-color);
+            color: var(--success-color);
         }
 
         .message.error {
             background: rgba(255, 0, 0, 0.1);
-            border: 1px solid #f00;
-            color: #f00;
+            border: 1px solid var(--error-color);
+            color: var(--error-color);
         }
 
         nav {
@@ -258,6 +422,34 @@
         </header>
 
         <main>
+            <!-- MODE TOGGLE SECTION -->
+            <div class="settings-section">
+                <h2><span class="material-icons" style="font-size: 0.9rem;">palette</span> DISPLAY MODE</h2>
+
+                <div class="setting-item">
+                    <label class="setting-label">Theme</label>
+                    <div class="setting-description">
+                        Wechsel zwischen Dark Mode und Light Mode
+                    </div>
+
+                    <div class="mode-toggle-container">
+                        <input type="checkbox" id="mode-toggle" class="mode-toggle-checkbox">
+                        <label for="mode-toggle" class="mode-toggle-label">
+                            <span class="mode-toggle-inner">
+                                <span class="mode-icon sun">☀️</span>
+                                <span class="mode-icon moon">🌙</span>
+                            </span>
+                            <span class="mode-toggle-switch"></span>
+                        </label>
+                    </div>
+
+                    <div class="current-value" style="margin-top: 1rem;">
+                        Aktuell: <strong id="current-mode">Dark Mode (Cyberpunk)</strong>
+                    </div>
+                </div>
+            </div>
+
+            <!-- AIRPORT SETTINGS SECTION -->
             <div class="settings-section">
                 <h2><span class="material-icons" style="font-size: 0.9rem;">flight</span> AIRPORT SETTINGS</h2>
 
@@ -286,6 +478,7 @@
                 <div id="message" class="message"></div>
             </div>
 
+            <!-- INFO SECTION -->
             <div class="settings-section">
                 <h2><span class="material-icons" style="font-size: 0.9rem;">info</span> INFO</h2>
                 <div style="font-size: 0.65rem; line-height: 1.4; opacity: 0.8;">
@@ -309,6 +502,39 @@
     </div>
 
     <script>
+        // Theme Management
+        function initTheme() {
+            const savedTheme = localStorage.getItem('theme');
+            const checkbox = document.getElementById('mode-toggle');
+
+            if (savedTheme === 'light') {
+                document.body.classList.add('light-mode');
+                checkbox.checked = true;
+                document.getElementById('current-mode').textContent = 'Light Mode';
+            } else {
+                document.getElementById('current-mode').textContent = 'Dark Mode (Cyberpunk)';
+            }
+        }
+
+        document.getElementById('mode-toggle').addEventListener('change', function() {
+            if (this.checked) {
+                // Light Mode aktivieren
+                document.body.classList.add('light-mode');
+                document.getElementById('current-mode').textContent = 'Light Mode';
+                localStorage.setItem('theme', 'light');
+                showMessage('Light Mode aktiviert! ☀️', 'success');
+            } else {
+                // Dark Mode aktivieren
+                document.body.classList.remove('light-mode');
+                document.getElementById('current-mode').textContent = 'Dark Mode (Cyberpunk)';
+                localStorage.setItem('theme', 'dark');
+                showMessage('Dark Mode aktiviert! 🌙', 'success');
+            }
+        });
+
+        // Initialize theme on page load
+        document.addEventListener('DOMContentLoaded', initTheme);
+
         function showMessage(text, type) {
             const msgEl = document.getElementById('message');
             msgEl.textContent = text;
