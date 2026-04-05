@@ -4,6 +4,7 @@ from datetime import datetime, date, timedelta
 import json
 import os
 import logging
+from logging.handlers import RotatingFileHandler
 from functools import lru_cache, wraps
 from time import time
 
@@ -12,7 +13,7 @@ logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     handlers=[
-        logging.FileHandler('aviation_dashboard.log'),
+        RotatingFileHandler('aviation_dashboard.log', maxBytes=5*1024*1024, backupCount=3),
         logging.StreamHandler()
     ]
 )
@@ -24,13 +25,6 @@ app = Flask(__name__)
 NASA_API_KEY = os.getenv("NASA_API_KEY", "ZXJWkvMvUtYeyDjAVbEjlxR8wkM7tWqgUkinyDwg")
 AVWX_TOKEN = os.getenv("AVWX_TOKEN", "0z3Owy4pPyW3RMKfkdRghFWcZdetlrikqOg6vXgx7VQ")
 
-# Strava Configuration
-STRAVA_CLIENT_ID = os.getenv("STRAVA_CLIENT_ID", "")
-STRAVA_CLIENT_SECRET = os.getenv("STRAVA_CLIENT_SECRET", "")
-STRAVA_REFRESH_TOKEN = os.getenv("STRAVA_REFRESH_TOKEN", "")
-STRAVA_ACCESS_TOKEN = None
-STRAVA_TOKEN_EXPIRY = 0
-
 # Home Coordinates
 HOME_LAT = float(os.getenv("HOME_LAT", "51.963"))
 HOME_LON = float(os.getenv("HOME_LON", "8.534"))
@@ -40,10 +34,6 @@ DINO_DATA_FILE = os.getenv("DINO_DATA_FILE", "dinos.json")
 SETTINGS_FILE = os.getenv("SETTINGS_FILE", "settings.json")
 
 logger.info(f"Starting Aviation Dashboard with coordinates: {HOME_LAT}, {HOME_LON}")
-if STRAVA_CLIENT_ID:
-    logger.info(f"Strava Client ID configured: {STRAVA_CLIENT_ID[:10]}...")
-else:
-    logger.warning("Strava not configured - widget will show placeholder")
 
 
 # === CACHING DECORATOR ===
@@ -81,16 +71,23 @@ def load_settings():
     try:
         with open(SETTINGS_FILE, 'r', encoding='utf-8') as f:
             settings = json.load(f)
+            # Ensure countdown fields exist
+            settings.setdefault("countdown_label", "Countdown")
+            settings.setdefault("countdown_date", "")
             logger.info(f"Settings loaded: {settings}")
             return settings
     except FileNotFoundError:
         logger.warning(f"{SETTINGS_FILE} not found, creating default settings")
-        default_settings = {"airport_icao": "EDLP"}
+        default_settings = {
+            "airport_icao": "EDLP",
+            "countdown_label": "Countdown",
+            "countdown_date": ""
+        }
         save_settings(default_settings)
         return default_settings
     except Exception as e:
         logger.error(f"Error loading settings: {e}")
-        return {"airport_icao": "EDLP"}
+        return {"airport_icao": "EDLP", "countdown_label": "Countdown", "countdown_date": ""}
 
 
 def save_settings(settings):
@@ -149,262 +146,21 @@ def get_dino_details(dino_name):
     return {"error": "Dino not found"}
 
 
-# === STRAVA FUNCTIONS ===
+def get_countdown_data():
+    """Calculate countdown to configured target date"""
+    label = APP_SETTINGS.get("countdown_label", "Countdown")
+    date_str = APP_SETTINGS.get("countdown_date", "")
 
-def refresh_strava_token():
-    """Refresh Strava access token using refresh token"""
-    global STRAVA_ACCESS_TOKEN, STRAVA_TOKEN_EXPIRY
+    if date_str:
+        try:
+            target_date = date.fromisoformat(date_str)
+            today = date.today()
+            days = (target_date - today).days
+            return {"label": label, "date": date_str, "days_remaining": days}
+        except Exception as e:
+            logger.warning(f"Countdown date parse error: {e}")
 
-    if not STRAVA_REFRESH_TOKEN:
-        logger.error("No Strava refresh token configured")
-        return None
-
-    try:
-        logger.info("Refreshing Strava access token")
-        url = "https://www.strava.com/oauth/token"
-
-        data = {
-            "client_id": STRAVA_CLIENT_ID,
-            "client_secret": STRAVA_CLIENT_SECRET,
-            "refresh_token": STRAVA_REFRESH_TOKEN,
-            "grant_type": "refresh_token"
-        }
-
-        resp = httpx.post(url, data=data, timeout=10)
-
-        if resp.status_code == 200:
-            token_data = resp.json()
-            STRAVA_ACCESS_TOKEN = token_data['access_token']
-            STRAVA_TOKEN_EXPIRY = token_data['expires_at']
-            logger.info("Strava token refreshed successfully")
-            return STRAVA_ACCESS_TOKEN
-        else:
-            logger.error(f"Token refresh failed: {resp.status_code}")
-            return None
-    except Exception as e:
-        logger.error(f"Strava token refresh error: {e}")
-        return None
-
-
-def get_strava_token():
-    """Get valid Strava access token, refresh if needed"""
-    global STRAVA_ACCESS_TOKEN, STRAVA_TOKEN_EXPIRY
-
-    current_time = datetime.now().timestamp()
-
-    if not STRAVA_ACCESS_TOKEN or current_time >= (STRAVA_TOKEN_EXPIRY - 300):
-        return refresh_strava_token()
-
-    return STRAVA_ACCESS_TOKEN
-
-
-@timed_cache(seconds=1800)
-def fetch_strava_activities():
-    """Fetch recent Strava activities"""
-    token = get_strava_token()
-
-    if not token:
-        logger.error("No valid Strava token available")
-        return None
-
-    try:
-        logger.info("Fetching Strava activities")
-        url = "https://www.strava.com/api/v3/athlete/activities"
-        headers = {"Authorization": f"Bearer {token}"}
-        params = {"per_page": 30}
-
-        resp = httpx.get(url, headers=headers, params=params, timeout=10)
-
-        if resp.status_code == 200:
-            activities = resp.json()
-            logger.info(f"Fetched {len(activities)} Strava activities")
-            return activities
-        elif resp.status_code == 401:
-            logger.warning("Strava 401, refreshing token")
-            token = refresh_strava_token()
-            if token:
-                headers = {"Authorization": f"Bearer {token}"}
-                resp = httpx.get(url, headers=headers, params=params, timeout=10)
-                if resp.status_code == 200:
-                    return resp.json()
-
-        logger.error(f"Strava API error: {resp.status_code}")
-        return None
-
-    except Exception as e:
-        logger.error(f"Strava fetch error: {e}")
-        return None
-
-
-def format_time(seconds):
-    """Format seconds to HH:MM:SS"""
-    hours = int(seconds // 3600)
-    minutes = int((seconds % 3600) // 60)
-    secs = int(seconds % 60)
-
-    if hours > 0:
-        return f"{hours}:{minutes:02d}:{secs:02d}"
-    else:
-        return f"{minutes}:{secs:02d}"
-
-
-def format_pace(seconds_per_meter, distance_meters):
-    """Calculate pace in min/km"""
-    if distance_meters == 0:
-        return "--:--"
-
-    pace_per_km = (seconds_per_meter * 1000) / 60
-    minutes = int(pace_per_km)
-    seconds = int((pace_per_km - minutes) * 60)
-
-    return f"{minutes}:{seconds:02d}"
-
-
-def calculate_streak(activities):
-    """Calculate current activity streak in days"""
-    if not activities:
-        return 0
-
-    sorted_activities = sorted(activities,
-                               key=lambda x: datetime.fromisoformat(x['start_date'].replace('Z', '+00:00')),
-                               reverse=True)
-
-    # Use timezone-aware date
-    import pytz
-    tz = pytz.timezone('Europe/Berlin')
-    today = datetime.now(tz).date()
-    streak = 0
-    current_check_date = today
-
-    for activity in sorted_activities:
-        activity_date = datetime.fromisoformat(activity['start_date'].replace('Z', '+00:00')).date()
-
-        if activity_date == current_check_date:
-            streak += 1
-            current_check_date -= timedelta(days=1)
-        elif activity_date < current_check_date:
-            break
-
-    return streak
-
-
-def parse_strava_data(activities):
-    """Parse Strava activities into dashboard-ready data"""
-    if not activities or len(activities) == 0:
-        return {
-            "display_stat": "--",
-            "display_label": "Keine Daten",
-            "streak": 0
-        }
-
-    streak = calculate_streak(activities)
-
-    # Use timezone-aware datetime
-    import pytz
-    tz = pytz.timezone('Europe/Berlin')
-    now = datetime.now(tz)
-    month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
-
-    month_activities = [a for a in activities
-                        if datetime.fromisoformat(a['start_date'].replace('Z', '+00:00')) >= month_start]
-
-    month_distance = sum(a['distance'] for a in month_activities) / 1000
-
-    week_ago = now - timedelta(days=7)
-    week_activities = [a for a in activities
-                       if datetime.fromisoformat(a['start_date'].replace('Z', '+00:00')) >= week_ago]
-
-    week_count = len(week_activities)
-
-    display_stat = f"{month_distance:.1f}"
-    display_label = "KM MONAT"
-
-    if streak >= 7:
-        display_stat = str(streak)
-        display_label = "DAY STREAK"
-
-    return {
-        "display_stat": display_stat,
-        "display_label": display_label,
-        "streak": streak,
-        "month_distance": f"{month_distance:.1f}",
-        "week_count": week_count
-    }
-
-
-def parse_strava_detailed(activities):
-    """Parse detailed Strava statistics"""
-    if not activities or len(activities) == 0:
-        return {"error": "No activities"}
-
-    # Use timezone-aware datetime
-    import pytz
-    tz = pytz.timezone('Europe/Berlin')
-    now = datetime.now(tz)
-
-    latest = activities[0]
-    distance_km = latest['distance'] / 1000
-    moving_time = latest['moving_time']
-
-    latest_data = {
-        "distance": f"{distance_km:.1f}",
-        "time": format_time(moving_time),
-        "pace": format_pace(moving_time, latest['distance']),
-        "elevation": round(latest.get('total_elevation_gain', 0), 0)
-    }
-
-    week_ago = now - timedelta(days=7)
-    week_activities = [a for a in activities
-                       if datetime.fromisoformat(a['start_date'].replace('Z', '+00:00')) >= week_ago]
-
-    run_distance = sum(a['distance'] for a in week_activities if a['type'] == 'Run') / 1000
-    ride_distance = sum(a['distance'] for a in week_activities if a['type'] == 'Ride') / 1000
-    swim_distance = sum(a['distance'] for a in week_activities if a['type'] == 'Swim') / 1000
-
-    weekly_data = {
-        "run": f"{run_distance:.1f}",
-        "ride": f"{ride_distance:.1f}",
-        "swim": f"{swim_distance:.1f}",
-        "total": f"{(run_distance + ride_distance + swim_distance):.1f}"
-    }
-
-    heatmap = []
-    for i in range(7):
-        check_date = (now - timedelta(days=6 - i)).date()
-        has_activity = any(
-            datetime.fromisoformat(a['start_date'].replace('Z', '+00:00')).date() == check_date
-            for a in activities
-        )
-        heatmap.append(has_activity)
-
-    runs = [a for a in activities if a['type'] == 'Run']
-    longest_run = max((a['distance'] for a in runs), default=0) / 1000 if runs else 0
-
-    five_k_runs = [a for a in runs if 4500 <= a['distance'] <= 5500]
-    fastest_5k_time = min((a['moving_time'] for a in five_k_runs), default=None) if five_k_runs else None
-
-    max_elevation = max((a.get('total_elevation_gain', 0) for a in activities), default=0)
-
-    records = {
-        "longest_run": f"{longest_run:.1f} km" if longest_run > 0 else "--",
-        "fastest_5k": format_time(fastest_5k_time) if fastest_5k_time else "--",
-        "max_elevation": f"{round(max_elevation)}m" if max_elevation > 0 else "--"
-    }
-
-    month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
-    month_activities = [a for a in activities
-                        if datetime.fromisoformat(a['start_date'].replace('Z', '+00:00')) >= month_start]
-    month_distance = sum(a['distance'] for a in month_activities) / 1000
-
-    return {
-        "streak": calculate_streak(activities),
-        "month_distance": f"{month_distance:.1f}",
-        "week_count": len(week_activities),
-        "latest": latest_data,
-        "weekly": weekly_data,
-        "heatmap": heatmap,
-        "records": records
-    }
+    return {"label": label, "date": date_str, "days_remaining": None}
 
 
 # === CACHED API FUNCTIONS ===
@@ -509,7 +265,7 @@ def fetch_nasa_apod():
                     "media_type": "image",
                     "explanation": "Gestern: " + data.get("explanation", "")[:140] + "..."
                 }
-    except:
+    except Exception:
         pass
 
     logger.warning("Using hardcoded fallback image")
@@ -526,29 +282,25 @@ def fetch_nasa_epic():
     """Fetch latest NASA EPIC Earth image - Cached for 1 hour"""
     try:
         logger.info("Fetching NASA EPIC")
-        url = f"https://api.nasa.gov/EPIC/api/natural?api_key={NASA_API_KEY}"
+        url = "https://epic.gsfc.nasa.gov/api/natural"
         resp = httpx.get(url, timeout=10)
 
         if resp.status_code == 200:
             data = resp.json()
             if data and len(data) > 0:
-                for item in data[:3]:
-                    try:
-                        date_str = item["date"]
-                        dt = datetime.strptime(date_str, "%Y-%m-%d %H:%M:%S")
-                        image_url = f"https://epic.gsfc.nasa.gov/archive/natural/{dt.strftime('%Y/%m/%d')}/jpg/{item['image']}.jpg"
-
-                        test = httpx.head(image_url, timeout=3)
-                        if test.status_code == 200:
-                            logger.info(f"NASA EPIC image found: {date_str}")
-                            return {
-                                "caption": item.get("caption", "Earth from Space"),
-                                "url": image_url,
-                                "date": date_str
-                            }
-                    except Exception as e:
-                        logger.warning(f"EPIC image validation failed: {e}")
-                        continue
+                item = data[0]
+                try:
+                    date_str = item["date"]
+                    dt = datetime.strptime(date_str, "%Y-%m-%d %H:%M:%S")
+                    image_url = f"https://epic.gsfc.nasa.gov/archive/natural/{dt.strftime('%Y/%m/%d')}/jpg/{item['image']}.jpg"
+                    logger.info(f"NASA EPIC image: {date_str}")
+                    return {
+                        "caption": item.get("caption", "Earth from Space"),
+                        "url": image_url,
+                        "date": date_str
+                    }
+                except Exception as e:
+                    logger.warning(f"EPIC parse error: {e}")
     except Exception as e:
         logger.error(f"NASA EPIC Error: {e}")
 
@@ -615,46 +367,52 @@ def calculate_sun_moon_times():
     return {"sunrise": "──:──", "sunset": "──:──"}
 
 
-def fetch_notams(station="EDLP"):
-    """Fetch NOTAMs from AVWX and return them in the mock format."""
-
-    url = f"https://avwx.rest/api/notam/{station}"
+@timed_cache(seconds=86400)
+def fetch_station_info(station="EDLP"):
+    """Fetch station/airport info from AVWX - cached for 24 hours"""
+    url = f"https://avwx.rest/api/station/{station}"
     headers = {"Authorization": f"BEARER {AVWX_TOKEN}"}
 
     try:
-        logger.info(f"Fetching NOTAMs for {station}")
+        logger.info(f"Fetching station info for {station}")
         resp = httpx.get(url, headers=headers, timeout=10)
 
         if resp.status_code == 200:
             data = resp.json()
 
-            # AVWX returns: a list of NOTAM objects
-            notam_list = []
-            for entry in data:
-                notam_list.append({
-                    "id": entry.get("id", "UNKNOWN"),
-                    "message": entry.get("raw", "No message available")
+            runways = []
+            for rwy in data.get("runways", []):
+                length_raw = rwy.get("length_ft", {})
+                length_ft = length_raw.get("value", 0) if isinstance(length_raw, dict) else length_raw
+                surface_raw = rwy.get("surface", {})
+                surface = surface_raw.get("value", "") if isinstance(surface_raw, dict) else surface_raw
+                runways.append({
+                    "ident": f"{rwy.get('ident_1', '?')}/{rwy.get('ident_2', '?')}",
+                    "length_ft": int(length_ft) if length_ft else 0,
+                    "surface": surface,
+                    "lights": rwy.get("lights", False)
                 })
 
-            logger.info(f"Received {len(notam_list)} NOTAMs for {station}")
+            elev_raw = data.get("elevation", {})
+            elev_ft = elev_raw.get("value", 0) if isinstance(elev_raw, dict) else (elev_raw or 0)
 
+            logger.info(f"Station info fetched for {station}: {data.get('name')}")
             return {
-                "station": station,
-                "notams": notam_list
+                "name": data.get("name", station),
+                "city": data.get("city", ""),
+                "iata": data.get("iata", ""),
+                "elevation_ft": int(elev_ft),
+                "elevation_m": round(int(elev_ft) * 0.3048),
+                "runways": runways,
+                "type": data.get("type", "")
             }
-
         else:
-            logger.error(f"AVWX returned status {resp.status_code}")
+            logger.error(f"Station API returned {resp.status_code} for {station}")
 
     except Exception as e:
-        logger.error(f"NOTAM Error: {e}")
+        logger.error(f"Station fetch error: {e}")
 
-    # Fallback if API fails
-    return {
-        "station": station,
-        "notams": []
-    }
-
+    return None
 
 
 # === REQUEST TIMING MIDDLEWARE ===
@@ -673,6 +431,23 @@ def after_request(response):
     return response
 
 
+@app.errorhandler(Exception)
+def handle_exception(e):
+    """Global error handler — keeps the server running on unexpected errors"""
+    logger.error(f"Unhandled exception: {e}", exc_info=True)
+    if request.path.startswith('/api/'):
+        return jsonify({"error": "Internal server error"}), 500
+    return render_template("dashboard.html",
+                           metar={"station": "ERR", "raw": "", "flight_rules": "N/A",
+                                  "wind_direction": "N/A", "wind_speed": "N/A",
+                                  "temperature": "N/A", "dewpoint": "N/A",
+                                  "visibility": "N/A", "altimeter": "N/A"},
+                           dino=get_daily_dino(),
+                           nasa_apod={"title": "", "url": "", "media_type": "image"},
+                           nasa_epic={"caption": "", "url": "", "date": ""},
+                           countdown=get_countdown_data()), 500
+
+
 # === ROUTES ===
 
 @app.route("/")
@@ -681,17 +456,13 @@ def home():
     airport = APP_SETTINGS.get("airport_icao", "EDLP")
     logger.info(f"Loading dashboard for airport: {airport}")
 
-    # Fetch Strava data
-    activities = fetch_strava_activities()
-    strava_data = parse_strava_data(activities) if activities else None
-
     return render_template(
         "dashboard.html",
         metar=fetch_metar(airport),
         dino=get_daily_dino(),
         nasa_apod=fetch_nasa_apod(),
         nasa_epic=fetch_nasa_epic(),
-        strava=strava_data
+        countdown=get_countdown_data()
     )
 
 
@@ -703,18 +474,15 @@ def dino_page():
     return render_template("dino.html", dino=dino)
 
 
-@app.route("/strava")
-def strava_page():
-    """Strava statistics page"""
-    activities = fetch_strava_activities()
-    strava_data = parse_strava_data(activities) if activities else None
-    return render_template("strava.html", strava=strava_data)
-
-
 @app.route("/settings")
 def settings_page():
     """Settings page"""
-    return render_template("settings.html", current_airport=APP_SETTINGS.get("airport_icao", "EDLP"))
+    return render_template(
+        "settings.html",
+        current_airport=APP_SETTINGS.get("airport_icao", "EDLP"),
+        countdown_label=APP_SETTINGS.get("countdown_label", "Countdown"),
+        countdown_date=APP_SETTINGS.get("countdown_date", "")
+    )
 
 
 @app.route("/weather")
@@ -737,19 +505,27 @@ def api_settings():
     if request.method == 'POST':
         try:
             data = request.get_json()
-            airport_icao = data.get('airport_icao', '').strip().upper()
 
-            if len(airport_icao) != 4:
-                logger.warning(f"Invalid ICAO length: {airport_icao}")
-                return jsonify({"error": "ICAO must be 4 characters"}), 400
-
-            APP_SETTINGS['airport_icao'] = airport_icao
-
-            if save_settings(APP_SETTINGS):
+            # Airport ICAO (optional in payload)
+            if 'airport_icao' in data:
+                airport_icao = data['airport_icao'].strip().upper()
+                if len(airport_icao) != 4:
+                    logger.warning(f"Invalid ICAO length: {airport_icao}")
+                    return jsonify({"error": "ICAO must be 4 characters"}), 400
+                APP_SETTINGS['airport_icao'] = airport_icao
                 fetch_metar.clear_cache()
                 fetch_taf.clear_cache()
+                fetch_station_info.clear_cache()
                 logger.info(f"Airport changed to: {airport_icao}, cache cleared")
-                return jsonify({"success": True, "airport_icao": airport_icao})
+
+            # Countdown settings
+            if 'countdown_label' in data:
+                APP_SETTINGS['countdown_label'] = data['countdown_label'].strip()
+            if 'countdown_date' in data:
+                APP_SETTINGS['countdown_date'] = data['countdown_date'].strip()
+
+            if save_settings(APP_SETTINGS):
+                return jsonify({"success": True})
             else:
                 return jsonify({"error": "Failed to save"}), 500
         except Exception as e:
@@ -768,6 +544,12 @@ def api_test_airport(icao):
     return jsonify({"valid": valid, "station": metar.get("station")})
 
 
+@app.route("/api/countdown")
+def api_countdown():
+    """Countdown API"""
+    return jsonify(get_countdown_data())
+
+
 @app.route("/api/refresh")
 def api_refresh():
     """Refresh all data and clear caches"""
@@ -778,17 +560,15 @@ def api_refresh():
     fetch_nasa_epic.clear_cache()
     fetch_taf.clear_cache()
     calculate_sun_moon_times.clear_cache()
-    fetch_strava_activities.clear_cache()
 
     airport = APP_SETTINGS.get("airport_icao", "EDLP")
-    activities = fetch_strava_activities()
 
     return jsonify({
         "metar": fetch_metar(airport),
         "dino": get_daily_dino(),
         "nasa_apod": fetch_nasa_apod(),
         "nasa_epic": fetch_nasa_epic(),
-        "strava": parse_strava_data(activities) if activities else None
+        "countdown": get_countdown_data()
     })
 
 
@@ -805,42 +585,20 @@ def api_sunmoon():
     return jsonify(calculate_sun_moon_times())
 
 
-@app.route("/api/notams")
-def api_notams():
-    """NOTAMs API"""
+@app.route("/api/station")
+def api_station():
+    """Station info API"""
     airport = APP_SETTINGS.get("airport_icao", "EDLP")
-    return jsonify(fetch_notams(airport))
+    data = fetch_station_info(airport)
+    if data:
+        return jsonify(data)
+    return jsonify({"error": "Station data unavailable"}), 503
 
 
 @app.route("/api/dino/<dino_name>")
 def api_dino_details(dino_name):
     """Dino details API"""
     return jsonify(get_dino_details(dino_name))
-
-
-@app.route("/api/strava")
-def api_strava():
-    """Strava API endpoint - simple stats for dashboard"""
-    activities = fetch_strava_activities()
-
-    if not activities:
-        return jsonify(
-            {"error": "No Strava data available", "display_stat": "--", "display_label": "Keine Daten", "streak": 0})
-
-    data = parse_strava_data(activities)
-    return jsonify(data)
-
-
-@app.route("/api/strava/detailed")
-def api_strava_detailed():
-    """Strava API endpoint - detailed stats for stats page"""
-    activities = fetch_strava_activities()
-
-    if not activities:
-        return jsonify({"error": "No Strava data available"})
-
-    data = parse_strava_detailed(activities)
-    return jsonify(data)
 
 
 @app.route("/api/health")
@@ -868,18 +626,7 @@ def api_health():
         health["services"]["avwx"] = "error"
         logger.error(f"AVWX health check failed: {e}")
 
-    if STRAVA_REFRESH_TOKEN:
-        try:
-            token = get_strava_token()
-            health["services"]["strava"] = "ok" if token else "error"
-        except Exception as e:
-            health["services"]["strava"] = "error"
-            logger.error(f"Strava health check failed: {e}")
-    else:
-        health["services"]["strava"] = "not_configured"
-
-    health["status"] = "ok" if all(
-        v == "ok" for v in health["services"].values() if v != "not_configured") else "degraded"
+    health["status"] = "ok" if all(v == "ok" for v in health["services"].values()) else "degraded"
 
     logger.info(f"Health check result: {health['status']}")
     return jsonify(health)
@@ -894,7 +641,7 @@ def api_config():
             "flights": 30000,
             "weather": 300000,
             "apod": 3600000,
-            "strava": 1800000
+            "countdown": 3600000
         },
         "coordinates": {
             "lat": HOME_LAT,
@@ -905,11 +652,7 @@ def api_config():
             "taf": "10 minutes",
             "apod": "1 hour",
             "epic": "1 hour",
-            "sunmoon": "1 hour",
-            "strava": "30 minutes"
-        },
-        "features": {
-            "strava_enabled": bool(STRAVA_REFRESH_TOKEN)
+            "sunmoon": "1 hour"
         }
     })
 
@@ -921,12 +664,6 @@ if __name__ == "__main__":
     logger.info(f"AVWX Token: {'*' * (len(AVWX_TOKEN) - 4) + AVWX_TOKEN[-4:]}")
     logger.info(f"Home: {HOME_LAT}, {HOME_LON}")
     logger.info(f"Dinos loaded: {len(DINO_FACTS)}")
-
-    if STRAVA_REFRESH_TOKEN:
-        logger.info(f"Strava: ENABLED")
-    else:
-        logger.warning("Strava: NOT CONFIGURED")
-
     logger.info("=" * 50)
 
     os.makedirs("templates", exist_ok=True)

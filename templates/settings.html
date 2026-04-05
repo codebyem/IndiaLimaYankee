@@ -158,6 +158,8 @@
             gap: 1rem;
             padding: 1rem;
             overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+            overscroll-behavior: contain;
         }
 
         .settings-section {
@@ -311,23 +313,38 @@
             box-shadow: 0 0 30px rgba(0, 255, 255, 0.6);
         }
 
-        input[type="text"] {
+        input[type="text"],
+        input[type="date"] {
             width: 100%;
-            padding: 0.6rem;
+            padding: 0.8rem 0.6rem;
             background: var(--input-bg);
             border: 2px solid var(--border-color);
             border-radius: 4px;
             color: var(--text-primary);
             font-family: 'Orbitron', monospace;
-            font-size: 0.8rem;
-            text-transform: uppercase;
+            font-size: 1rem;
             box-shadow: 0 0 10px var(--border-glow);
-            transition: all 0.3s ease;
+            transition: box-shadow 0.3s ease;
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
+            min-height: 44px;
         }
 
-        input[type="text"]:focus {
+        input[type="text"] {
+            text-transform: uppercase;
+        }
+
+        input[type="text"]:focus,
+        input[type="date"]:focus {
             outline: none;
             box-shadow: 0 0 20px var(--border-glow);
+        }
+
+        input[type="date"]::-webkit-calendar-picker-indicator {
+            filter: invert(1) sepia(1) saturate(5) hue-rotate(175deg);
+            cursor: pointer;
+            padding: 0.3rem;
+            touch-action: manipulation;
         }
 
         .button-group {
@@ -338,7 +355,7 @@
 
         button {
             flex: 1;
-            padding: 0.7rem;
+            padding: 0.9rem 0.7rem;
             font-family: 'Orbitron', monospace;
             font-size: 0.7rem;
             font-weight: 700;
@@ -347,10 +364,13 @@
             border: 2px solid var(--border-color);
             border-radius: 4px;
             cursor: pointer;
-            transition: all 0.2s;
+            transition: background 0.2s, box-shadow 0.2s;
             text-transform: uppercase;
             letter-spacing: 0.5px;
             box-shadow: 0 0 10px var(--border-glow);
+            touch-action: manipulation;
+            min-height: 44px;
+            -webkit-tap-highlight-color: transparent;
         }
 
         button:hover {
@@ -359,7 +379,8 @@
         }
 
         button:active {
-            transform: scale(0.95);
+            background: var(--button-hover);
+            transform: scale(0.97);
         }
 
         button.save-btn {
@@ -409,6 +430,35 @@
             display: grid;
             grid-template-columns: 1fr 1fr;
             gap: 0.3rem;
+        }
+
+        /* Reset-Bestätigungsbox (kein confirm() nötig) */
+        #reset-confirm {
+            display: none;
+            position: fixed;
+            bottom: 4rem;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 20, 40, 0.97);
+            border: 2px solid #f00;
+            border-radius: 6px;
+            padding: 1rem;
+            z-index: 100;
+            text-align: center;
+            width: 90%;
+            max-width: 360px;
+            box-shadow: 0 0 20px rgba(255, 0, 0, 0.4);
+        }
+
+        #reset-confirm p {
+            font-size: 0.7rem;
+            margin-bottom: 1rem;
+            color: #0ff;
+        }
+
+        #reset-confirm .confirm-buttons {
+            display: flex;
+            gap: 0.5rem;
         }
     </style>
 </head>
@@ -478,6 +528,46 @@
                 <div id="message" class="message"></div>
             </div>
 
+            <!-- COUNTDOWN SECTION -->
+            <div class="settings-section">
+                <h2><span class="material-icons" style="font-size: 0.9rem;">timer</span> COUNTDOWN</h2>
+
+                <div class="setting-item">
+                    <label class="setting-label" for="countdown-label">Bezeichnung</label>
+                    <div class="setting-description">
+                        Text der unter dem Countdown angezeigt wird
+                    </div>
+                    <input
+                        type="text"
+                        id="countdown-label-input"
+                        placeholder="Z.B. WETTKAMPF"
+                        maxlength="30"
+                        value="{{ countdown_label }}"
+                        style="text-transform: none;"
+                    >
+                </div>
+
+                <div class="setting-item">
+                    <label class="setting-label" for="countdown-date-input">Zieldatum</label>
+                    <div class="setting-description">
+                        Datum zu dem heruntergezählt wird
+                    </div>
+                    <input
+                        type="date"
+                        id="countdown-date-input"
+                        value="{{ countdown_date }}"
+                    >
+                </div>
+
+                <div class="button-group">
+                    <button class="save-btn" onclick="saveCountdown()">
+                        <span class="material-icons" style="font-size: 0.8rem;">save</span> SPEICHERN
+                    </button>
+                </div>
+
+                <div id="countdown-message" class="message"></div>
+            </div>
+
             <!-- INFO SECTION -->
             <div class="settings-section">
                 <h2><span class="material-icons" style="font-size: 0.9rem;">info</span> INFO</h2>
@@ -497,8 +587,17 @@
 
         <nav>
             <button onclick="location.href='/'"><span class="material-icons" style="font-size: 0.8rem;">arrow_back</span> ZURÜCK</button>
-            <button onclick="resetSettings()"><span class="material-icons" style="font-size: 0.8rem;">refresh</span> RESET</button>
+            <button onclick="showResetConfirm()"><span class="material-icons" style="font-size: 0.8rem;">refresh</span> RESET</button>
         </nav>
+
+        <!-- Reset-Bestätigung (kein confirm() Dialog) -->
+        <div id="reset-confirm">
+            <p>Wirklich auf Standard (EDLP) zurücksetzen?</p>
+            <div class="confirm-buttons">
+                <button onclick="confirmReset()" style="border-color: #f00; color: #f00;">JA, RESET</button>
+                <button onclick="hideResetConfirm()">ABBRECHEN</button>
+            </div>
+        </div>
     </div>
 
     <script>
@@ -602,10 +701,50 @@
             }
         }
 
-        function resetSettings() {
-            if (confirm('Wirklich auf Standard (EDLP) zurücksetzen?')) {
-                document.getElementById('airport-icao').value = 'EDLP';
-                saveSettings();
+        function showResetConfirm() {
+            document.getElementById('reset-confirm').style.display = 'block';
+        }
+
+        function hideResetConfirm() {
+            document.getElementById('reset-confirm').style.display = 'none';
+        }
+
+        function confirmReset() {
+            hideResetConfirm();
+            document.getElementById('airport-icao').value = 'EDLP';
+            saveSettings();
+        }
+
+        async function saveCountdown() {
+            const label = document.getElementById('countdown-label-input').value.trim();
+            const dateVal = document.getElementById('countdown-date-input').value.trim();
+
+            try {
+                const resp = await fetch('/api/settings', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ countdown_label: label, countdown_date: dateVal })
+                });
+
+                const data = await resp.json();
+                const msgEl = document.getElementById('countdown-message');
+
+                if (resp.ok) {
+                    msgEl.textContent = 'Countdown gespeichert!';
+                    msgEl.className = 'message success';
+                    msgEl.style.display = 'block';
+                } else {
+                    msgEl.textContent = 'Fehler: ' + (data.error || 'Unbekannt');
+                    msgEl.className = 'message error';
+                    msgEl.style.display = 'block';
+                }
+                setTimeout(() => { msgEl.style.display = 'none'; }, 3000);
+            } catch (error) {
+                const msgEl = document.getElementById('countdown-message');
+                msgEl.textContent = 'Netzwerkfehler';
+                msgEl.className = 'message error';
+                msgEl.style.display = 'block';
+                setTimeout(() => { msgEl.style.display = 'none'; }, 3000);
             }
         }
 

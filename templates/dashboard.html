@@ -8,6 +8,32 @@
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap');
 
+        :root {
+            --bg-primary: #000;
+            --card-bg: rgba(0, 20, 40, 0.8);
+            --header-bg: rgba(0, 255, 255, 0.05);
+            --text-primary: #0ff;
+            --border-color: #0ff;
+            --border-glow: rgba(0, 255, 255, 0.3);
+            --grid-color: rgba(0, 255, 255, 0.03);
+            --scanline-color: rgba(0, 255, 255, 0.03);
+            --button-bg: rgba(0, 255, 255, 0.1);
+            --button-hover: rgba(0, 255, 255, 0.3);
+        }
+
+        body.light-mode {
+            --bg-primary: #e8edf5;
+            --card-bg: rgba(255, 255, 255, 0.92);
+            --header-bg: rgba(49, 130, 206, 0.08);
+            --text-primary: #1a365d;
+            --border-color: #3182ce;
+            --border-glow: rgba(49, 130, 206, 0.3);
+            --grid-color: rgba(49, 130, 206, 0.05);
+            --scanline-color: transparent;
+            --button-bg: rgba(49, 130, 206, 0.1);
+            --button-hover: rgba(49, 130, 206, 0.25);
+        }
+
         /* Material Icons Styling */
         .material-icons {
             font-family: 'Material Icons';
@@ -34,11 +60,12 @@
 
         body {
             font-family: 'Orbitron', monospace;
-            background: #000;
-            color: #0ff;
+            background: var(--bg-primary);
+            color: var(--text-primary);
             overflow: hidden;
             height: 100vh;
             position: relative;
+            transition: background 0.4s ease, color 0.4s ease;
         }
 
         /* Animated Background */
@@ -49,11 +76,12 @@
             width: 100%;
             height: 100%;
             background:
-                linear-gradient(rgba(0, 255, 255, 0.03) 1px, transparent 1px),
-                linear-gradient(90deg, rgba(0, 255, 255, 0.03) 1px, transparent 1px);
+                linear-gradient(var(--grid-color) 1px, transparent 1px),
+                linear-gradient(90deg, var(--grid-color) 1px, transparent 1px);
             background-size: 50px 50px;
             animation: gridMove 20s linear infinite;
             z-index: 0;
+            transition: background 0.4s ease;
         }
 
         @keyframes gridMove {
@@ -67,11 +95,12 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background: linear-gradient(transparent 50%, rgba(0, 255, 255, 0.03) 50%);
+            background: linear-gradient(transparent 50%, var(--scanline-color) 50%);
             background-size: 100% 4px;
             pointer-events: none;
             animation: scan 8s linear infinite;
             z-index: 999;
+            transition: background 0.4s ease;
         }
 
         @keyframes scan {
@@ -92,10 +121,11 @@
         header {
             text-align: center;
             padding: 0.3rem;
-            background: rgba(0, 255, 255, 0.05);
-            border: 2px solid #0ff;
+            background: var(--header-bg);
+            border: 2px solid var(--border-color);
             border-radius: 6px;
-            box-shadow: 0 0 20px rgba(0, 255, 255, 0.3);
+            box-shadow: 0 0 20px var(--border-glow);
+            transition: all 0.4s ease;
         }
 
         header h1 {
@@ -103,12 +133,13 @@
             font-weight: 900;
             text-transform: uppercase;
             letter-spacing: 1px;
-            text-shadow: 0 0 10px #0ff;
+            color: var(--text-primary);
+            text-shadow: 0 0 10px var(--border-glow);
         }
 
         #date-time {
             font-size: 0.6rem;
-            color: #0ff;
+            color: var(--text-primary);
             margin-top: 0.1rem;
             opacity: 0.8;
         }
@@ -124,15 +155,16 @@
         }
 
         .card {
-            background: rgba(0, 20, 40, 0.8);
-            border: 2px solid #0ff;
+            background: var(--card-bg);
+            border: 2px solid var(--border-color);
             border-radius: 6px;
             padding: 0.4rem;
-            box-shadow: 0 0 15px rgba(0, 255, 255, 0.3);
+            box-shadow: 0 0 15px var(--border-glow);
             display: flex;
             flex-direction: column;
             position: relative;
             overflow: hidden;
+            transition: background 0.4s ease, border-color 0.4s ease, box-shadow 0.4s ease;
         }
 
         .card::before {
@@ -142,7 +174,7 @@
             left: 0;
             width: 100%;
             height: 2px;
-            background: linear-gradient(90deg, transparent, #0ff, transparent);
+            background: linear-gradient(90deg, transparent, var(--border-color), transparent);
             animation: borderGlow 3s linear infinite;
         }
 
@@ -153,7 +185,7 @@
 
         .card h2 {
             font-size: 0.6rem;
-            color: #0ff;
+            color: var(--text-primary);
             margin-bottom: 0.3rem;
             text-transform: uppercase;
             letter-spacing: 0.5px;
@@ -287,63 +319,59 @@
             opacity: 0.9;
         }
 
-        /* STRAVA Card */
-        #strava-card {
+        /* COUNTDOWN Card */
+        #countdown-card {
             grid-column: 2;
             grid-row: 3;
-            cursor: pointer;
-            transition: all 0.3s;
-            background: linear-gradient(135deg, rgba(252, 76, 2, 0.1), rgba(0, 20, 40, 0.85));
-            border-color: #0ff;
         }
 
-        #strava-card::before {
-            background: linear-gradient(90deg, transparent, #fc4c02, transparent);
-        }
-
-        #strava-card:hover {
-            transform: scale(1.05);
-            box-shadow: 0 0 25px rgba(252, 76, 2, 0.6);
-            border-color: #ff6020;
-        }
-
-        #strava-card h2 {
-            color: #0ff;
-            text-shadow: 0 0 10px #fc4c02;
-        }
-
-        .strava-content {
+        .countdown-content {
             flex: 1;
             display: flex;
             flex-direction: column;
-            justify-content: space-around;
-            text-align: center;
-        }
-
-        .strava-stat {
-            display: flex;
-            flex-direction: column;
+            justify-content: center;
             align-items: center;
-            gap: 0.1rem;
+            text-align: center;
+            gap: 0.2rem;
         }
 
-        .strava-value {
-            font-size: 1.1rem;
+        .countdown-days {
+            font-size: 1.8rem;
             font-weight: 900;
-            color: #fc4c02;
-            text-shadow: 0 0 10px #fc4c02;
+            color: #0ff;
+            text-shadow: 0 0 20px #0ff, 0 0 40px rgba(0, 255, 255, 0.4);
+            line-height: 1;
         }
 
-        .strava-label {
-            font-size: 0.5rem;
-            opacity: 0.8;
+        .countdown-days.past {
+            color: #fa0;
+            text-shadow: 0 0 20px #fa0;
+        }
+
+        .countdown-unit {
+            font-size: 0.45rem;
+            opacity: 0.7;
             text-transform: uppercase;
+            letter-spacing: 1px;
         }
 
+        .countdown-label {
+            font-size: 0.5rem;
+            color: #0ff;
+            opacity: 0.9;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-top: 0.1rem;
+            max-width: 100%;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
 
-        @keyframes stravaGlow {
-            0%, 100% { filter: drop-shadow(0 0 5px #fc4c02); }
-            50% { filter: drop-shadow(0 0 15px #fc4c02); }
+        .countdown-date {
+            font-size: 0.4rem;
+            opacity: 0.5;
+            font-family: 'Courier New', monospace;
         }
 
         /* NASA EPIC */
@@ -404,34 +432,48 @@
             line-height: 1.2;
         }
 
-        /* NOTAM */
-        #notam-card {
+        /* STATION INFO */
+        #station-card {
             grid-column: 4;
             grid-row: 4 / 5;
         }
 
-        .notam-list {
-            display: flex;
-            flex-direction: column;
-            gap: 0.3rem;
-            flex: 1;
-            overflow-y: auto;
-        }
-
-        .notam-item {
-            background: rgba(255, 0, 0, 0.1);
-            border: 1px solid #f00;
-            border-radius: 4px;
-            padding: 0.3rem;
-            font-size: 0.45rem;
-            line-height: 1.2;
-        }
-
-        .notam-id {
-            color: #f00;
-            font-weight: 700;
-            margin-bottom: 0.2rem;
+        .station-name {
             font-size: 0.5rem;
+            opacity: 0.85;
+            margin-bottom: 0.3rem;
+            line-height: 1.3;
+        }
+
+        .station-elev {
+            font-size: 0.6rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 0.3rem;
+        }
+
+        .runway-item {
+            background: rgba(0, 255, 255, 0.05);
+            border: 1px solid rgba(0, 255, 255, 0.2);
+            border-radius: 3px;
+            padding: 0.2rem 0.4rem;
+            margin-bottom: 0.2rem;
+            font-size: 0.48rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .runway-ident {
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        .station-type {
+            font-size: 0.42rem;
+            opacity: 0.55;
+            margin-top: 0.3rem;
+            text-transform: uppercase;
         }
 
         /* Navigation */
@@ -446,20 +488,21 @@
             font-family: 'Orbitron', monospace;
             font-size: 0.65rem;
             font-weight: 700;
-            background: rgba(0, 255, 255, 0.1);
-            color: #0ff;
-            border: 2px solid #0ff;
+            background: var(--button-bg);
+            color: var(--text-primary);
+            border: 2px solid var(--border-color);
             border-radius: 4px;
             cursor: pointer;
-            transition: all 0.2s;
+            transition: background 0.2s, box-shadow 0.2s;
             text-transform: uppercase;
             letter-spacing: 0.5px;
-            box-shadow: 0 0 10px rgba(0, 255, 255, 0.3);
+            box-shadow: 0 0 10px var(--border-glow);
+            touch-action: manipulation;
         }
 
         nav button:hover {
-            background: rgba(0, 255, 255, 0.3);
-            box-shadow: 0 0 20px rgba(0, 255, 255, 0.6);
+            background: var(--button-hover);
+            box-shadow: 0 0 20px var(--border-glow);
         }
 
         nav button:active {
@@ -484,6 +527,7 @@
     </style>
 </head>
 <body>
+    <script>(function(){if(localStorage.getItem('theme')==='light')document.body.classList.add('light-mode');})();</script>
     <div class="bg-grid"></div>
     <div class="scanline"></div>
 
@@ -545,10 +589,10 @@
                 </div>
             </div>
 
-            <!-- STRAVA - NEU! -->
-            <div class="card" id="strava-card" onclick="location.href='/strava'">
-                <h2>STRAVA</h2>
-                <div class="strava-content" id="strava-content">
+            <!-- COUNTDOWN -->
+            <div class="card" id="countdown-card">
+                <h2>COUNTDOWN</h2>
+                <div class="countdown-content" id="countdown-content">
                     <div class="loading"></div>
                 </div>
             </div>
@@ -583,10 +627,10 @@
                 </div>
             </div>
 
-            <!-- NOTAM -->
-            <div class="card" id="notam-card">
-                <h2>NOTAM</h2>
-                <div class="notam-list" id="notam-list">
+            <!-- STATION INFO -->
+            <div class="card" id="station-card">
+                <h2>STATION INFO</h2>
+                <div id="station-content">
                     <span class="loading"></span>
                 </div>
             </div>
@@ -620,28 +664,33 @@
             document.getElementById('digital-clock').textContent = timeStr;
         }
 
-        // Load Strava Widget
-// Load Strava Widget
-        async function loadStravaWidget() {
+        // Load Countdown Widget
+        async function loadCountdown() {
             try {
-                const resp = await fetch('/api/strava');  // ← Korrigiert!
+                const resp = await fetch('/api/countdown');
                 const data = await resp.json();
-                const stravaEl = document.getElementById('strava-content');
+                const el = document.getElementById('countdown-content');
 
-                if (data.error) {
-                    stravaEl.innerHTML = '<div style="text-align: center; font-size: 0.5rem; opacity: 0.7;">Keine Daten</div>';
+                if (data.days_remaining === null || data.days_remaining === undefined) {
+                    el.innerHTML = '<div style="text-align:center;font-size:0.5rem;opacity:0.6;">Kein Datum<br>konfiguriert</div>';
                     return;
                 }
 
-                stravaEl.innerHTML = `
-                    <div class="strava-stat">
-                        <div class="strava-value">${data.streak} Wochen</div>
-                        <div class="strava-label">Streak</div>
-                    </div>
+                const days = data.days_remaining;
+                const isPast = days < 0;
+                const absDays = Math.abs(days);
+                const unit = absDays === 1 ? 'TAG' : 'TAGE';
+                const prefix = isPast ? 'VOR' : 'NOCH';
+
+                el.innerHTML = `
+                    <div class="countdown-days ${isPast ? 'past' : ''}">${absDays}</div>
+                    <div class="countdown-unit">${prefix} ${unit}</div>
+                    <div class="countdown-label">${data.label}</div>
+                    <div class="countdown-date">${data.date}</div>
                 `;
             } catch (error) {
-                console.error('Strava error:', error);
-                document.getElementById('strava-content').innerHTML = '<div style="text-align: center; font-size: 0.5rem;">Error</div>';
+                document.getElementById('countdown-content').innerHTML =
+                    '<div style="text-align:center;font-size:0.5rem;opacity:0.6;">Error</div>';
             }
         }
 
@@ -675,25 +724,43 @@
             }
         }
 
-        // Load NOTAMs
-        async function loadNOTAMs() {
+        // Load Station Info
+        async function loadStation() {
             try {
-                const resp = await fetch('/api/notams');
+                const resp = await fetch('/api/station');
                 const data = await resp.json();
-                const notamEl = document.getElementById('notam-list');
+                const el = document.getElementById('station-content');
 
-                if (data.notams && data.notams.length > 0) {
-                    notamEl.innerHTML = data.notams.map(n => `
-                        <div class="notam-item">
-                            <div class="notam-id">${n.id}</div>
-                            <div>${n.message}</div>
-                        </div>
-                    `).join('');
-                } else {
-                    notamEl.innerHTML = '<div style="text-align: center; opacity: 0.7; font-size: 0.5rem;">Keine aktiven NOTAMs</div>';
+                if (data.error) {
+                    el.innerHTML = '<div style="font-size:0.5rem;opacity:0.6;text-align:center;">Nicht verfügbar</div>';
+                    return;
                 }
-            } catch (error) {
-                document.getElementById('notam-list').innerHTML = '<div style="color: #f00; font-size: 0.5rem;">Error</div>';
+
+                const typeMap = {
+                    'large_airport': 'Large Airport',
+                    'medium_airport': 'Medium Airport',
+                    'small_airport': 'Small Airport',
+                    'heliport': 'Heliport',
+                    'seaplane_base': 'Seaplane Base'
+                };
+
+                const rwHtml = (data.runways || []).map(rwy => `
+                    <div class="runway-item">
+                        <span class="runway-ident">RWY ${rwy.ident}</span>
+                        <span>${rwy.length_ft ? rwy.length_ft.toLocaleString() + ' ft' : ''}</span>
+                        <span>${rwy.surface || ''}${rwy.lights ? ' ·💡' : ''}</span>
+                    </div>
+                `).join('');
+
+                el.innerHTML = `
+                    <div class="station-name">${data.name}</div>
+                    <div class="station-elev">ELEV ${data.elevation_ft} ft · ${data.elevation_m} m</div>
+                    ${rwHtml}
+                    <div class="station-type">${typeMap[data.type] || data.type || ''}</div>
+                `;
+            } catch (e) {
+                document.getElementById('station-content').innerHTML =
+                    '<div style="font-size:0.5rem;opacity:0.6;text-align:center;">Error</div>';
             }
         }
 
@@ -703,8 +770,11 @@
 
         loadTAF();
         loadAstro();
-        loadNOTAMs();
-        loadStravaWidget();
+        loadStation();
+        loadCountdown();
+
+        // Refresh countdown hourly
+        setInterval(loadCountdown, 3600000);
 
         // Auto-refresh every 10 minutes
         setInterval(() => location.reload(), 600000);

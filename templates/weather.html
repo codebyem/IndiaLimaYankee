@@ -8,6 +8,30 @@
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet" />
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap');
+
+        :root {
+            --bg-primary: #000;
+            --card-bg: rgba(0, 20, 40, 0.8);
+            --text-primary: #0ff;
+            --border-color: #0ff;
+            --border-glow: rgba(0, 255, 255, 0.3);
+            --grid-color: rgba(0, 255, 255, 0.03);
+            --scanline-color: rgba(0, 255, 255, 0.03);
+            --button-bg: rgba(0, 255, 255, 0.1);
+            --button-hover: rgba(0, 255, 255, 0.3);
+        }
+        body.light-mode {
+            --bg-primary: #e8edf5;
+            --card-bg: rgba(255, 255, 255, 0.92);
+            --text-primary: #1a365d;
+            --border-color: #3182ce;
+            --border-glow: rgba(49, 130, 206, 0.3);
+            --grid-color: rgba(49, 130, 206, 0.05);
+            --scanline-color: transparent;
+            --button-bg: rgba(49, 130, 206, 0.1);
+            --button-hover: rgba(49, 130, 206, 0.25);
+        }
+
         .material-symbols-outlined {
             font-variation-settings:
                     "FILL" 1,
@@ -24,12 +48,13 @@
 
         body {
             font-family: 'Orbitron', monospace;
-            background: #000;
-            color: #0ff;
+            background: var(--bg-primary);
+            color: var(--text-primary);
             height: 100vh;
             display: flex;
             flex-direction: column;
             overflow: hidden;
+            transition: background 0.4s ease, color 0.4s ease;
         }
 
         /* Animated Background */
@@ -40,8 +65,8 @@
             width: 100%;
             height: 100%;
             background:
-                linear-gradient(rgba(0, 255, 255, 0.03) 1px, transparent 1px),
-                linear-gradient(90deg, rgba(0, 255, 255, 0.03) 1px, transparent 1px);
+                linear-gradient(var(--grid-color) 1px, transparent 1px),
+                linear-gradient(90deg, var(--grid-color) 1px, transparent 1px);
             background-size: 50px 50px;
             animation: gridMove 20s linear infinite;
             z-index: 0;
@@ -58,7 +83,7 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background: linear-gradient(transparent 50%, rgba(0, 255, 255, 0.03) 50%);
+            background: linear-gradient(transparent 50%, var(--scanline-color) 50%);
             background-size: 100% 4px;
             pointer-events: none;
             animation: scan 8s linear infinite;
@@ -83,10 +108,11 @@
         header {
             text-align: center;
             padding: 0.3rem;
-            background: rgba(0, 255, 255, 0.05);
-            border: 2px solid #0ff;
+            background: var(--card-bg);
+            border: 2px solid var(--border-color);
             border-radius: 6px;
-            box-shadow: 0 0 20px rgba(0, 255, 255, 0.3);
+            box-shadow: 0 0 20px var(--border-glow);
+            transition: all 0.4s ease;
         }
 
         header h1 {
@@ -94,15 +120,17 @@
             font-weight: 900;
             text-transform: uppercase;
             letter-spacing: 1px;
-            text-shadow: 0 0 10px #0ff;
+            color: var(--text-primary);
+            text-shadow: 0 0 10px var(--border-glow);
         }
 
         #map {
             flex: 1;
             width: 100%;
-            border: 2px solid #0ff;
+            border: 2px solid var(--border-color);
             border-radius: 6px;
-            box-shadow: 0 0 20px rgba(0, 255, 255, 0.3);
+            box-shadow: 0 0 20px var(--border-glow);
+            transition: border-color 0.4s ease;
         }
 
         nav {
@@ -116,20 +144,21 @@
             font-family: 'Orbitron', monospace;
             font-size: 0.65rem;
             font-weight: 700;
-            background: rgba(0, 255, 255, 0.1);
-            color: #0ff;
-            border: 2px solid #0ff;
+            background: var(--button-bg);
+            color: var(--text-primary);
+            border: 2px solid var(--border-color);
             border-radius: 4px;
             cursor: pointer;
-            transition: all 0.2s;
+            transition: background 0.2s, box-shadow 0.2s;
             text-transform: uppercase;
             letter-spacing: 0.5px;
-            box-shadow: 0 0 10px rgba(0, 255, 255, 0.3);
+            box-shadow: 0 0 10px var(--border-glow);
+            touch-action: manipulation;
         }
 
         nav button:hover {
-            background: rgba(0, 255, 255, 0.3);
-            box-shadow: 0 0 20px rgba(0, 255, 255, 0.6);
+            background: var(--button-hover);
+            box-shadow: 0 0 20px var(--border-glow);
             transform: translateY(-2px);
         }
 
@@ -141,17 +170,18 @@
             position: absolute;
             bottom: 80px;
             right: 10px;
-            background: rgba(0, 20, 40, 0.95);
-            border: 2px solid #0ff;
+            background: var(--card-bg);
+            border: 2px solid var(--border-color);
             padding: 0.8rem;
             border-radius: 6px;
             font-size: 0.7rem;
             z-index: 1000;
-            box-shadow: 0 0 15px rgba(0, 255, 255, 0.3);
+            box-shadow: 0 0 15px var(--border-glow);
+            transition: all 0.4s ease;
         }
 
         .legend h3 {
-            color: #0ff;
+            color: var(--text-primary);
             margin-bottom: 0.5rem;
             font-size: 0.8rem;
         }
@@ -167,11 +197,77 @@
             height: 20px;
             margin-right: 0.5rem;
             border-radius: 4px;
-            border: 1px solid #0ff;
+            border: 1px solid var(--border-color);
+        }
+
+        /* Radar Animation Controls */
+        #radar-controls {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.3rem 0.6rem;
+            background: var(--card-bg);
+            border: 2px solid var(--border-color);
+            border-radius: 4px;
+            box-shadow: 0 0 10px var(--border-glow);
+            transition: all 0.4s ease;
+        }
+
+        #radar-time {
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            min-width: 3rem;
+        }
+
+        .radar-badge {
+            padding: 0.15rem 0.4rem;
+            border-radius: 3px;
+            font-size: 0.5rem;
+            font-weight: 700;
+            min-width: 4rem;
+            text-align: center;
+        }
+
+        .badge-past {
+            background: rgba(0, 255, 255, 0.1);
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+        }
+
+        .badge-forecast {
+            background: rgba(255, 165, 0, 0.15);
+            color: #fa0;
+            border: 1px solid #fa0;
+        }
+
+        #radar-progress {
+            flex: 1;
+            height: 5px;
+            background: rgba(0, 255, 255, 0.15);
+            border-radius: 3px;
+            overflow: hidden;
+            border: 1px solid var(--border-color);
+        }
+
+        #radar-progress-bar {
+            height: 100%;
+            background: var(--text-primary);
+            border-radius: 3px;
+            transition: width 0.3s ease;
+        }
+
+        #btn-play-pause {
+            flex: none;
+            padding: 0.3rem 0.6rem;
+            font-size: 0.8rem;
+            min-width: 2rem;
+            min-height: auto;
         }
     </style>
 </head>
 <body>
+    <script>(function(){if(localStorage.getItem('theme')==='light')document.body.classList.add('light-mode');})();</script>
     <div class="bg-grid"></div>
     <div class="scanline"></div>
 
@@ -186,6 +282,14 @@
         </header>
 
         <div id="map"></div>
+
+        <!-- Radar Animation Controls -->
+        <div id="radar-controls">
+            <div id="radar-time">--:--</div>
+            <div id="radar-badge" class="radar-badge badge-past">LADEN...</div>
+            <div id="radar-progress"><div id="radar-progress-bar" style="width:0%"></div></div>
+            <button id="btn-play-pause" onclick="togglePlayPause()">⏸</button>
+        </div>
 
         <div class="legend">
             <h3>NIEDERSCHLAG</h3>
@@ -222,8 +326,12 @@
         const homeLon = parseFloat("{{ lon }}");
         const map = L.map('map').setView([homeLat, homeLon], 9);
 
-        // Dark base layer for better contrast
-        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+        // Tile layer depending on theme
+        const isLight = document.body.classList.contains('light-mode');
+        const tileUrl = isLight
+            ? 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png'
+            : 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png';
+        L.tileLayer(tileUrl, {
             attribution: '© OpenStreetMap, © CartoDB',
             maxZoom: 19
         }).addTo(map);
@@ -252,44 +360,96 @@
             .bindPopup('<b style="color: #0ff;">HOME BASE</b>')
             .openPopup();
 
-        // RainViewer API for weather radar
+        // Radar Animation
         let radarLayer = null;
+        let allFrames = [];
+        let currentFrameIndex = 0;
+        let isPlaying = true;
+        let animationInterval = null;
 
         async function loadRadarData() {
             try {
                 const resp = await fetch('https://api.rainviewer.com/public/weather-maps.json');
                 const data = await resp.json();
 
-                if (data.radar && data.radar.past.length > 0) {
-                    const frames = data.radar.past;
-                    const latestFrame = frames[frames.length - 1];
+                const past = (data.radar?.past || []).map(f => ({ ...f, type: 'past' }));
+                const nowcast = (data.radar?.nowcast || []).map(f => ({ ...f, type: 'nowcast' }));
+                allFrames = [...past, ...nowcast];
 
-                    // Remove old layer
-                    if (radarLayer) {
-                        map.removeLayer(radarLayer);
-                    }
-
-                    // Add new radar layer
-                    radarLayer = L.tileLayer(
-                        `https://tilecache.rainviewer.com${latestFrame.path}/256/{z}/{x}/{y}/2/1_1.png`,
-                        {
-                            opacity: 0.7,
-                            maxZoom: 19
-                        }
-                    ).addTo(map);
-
-                    console.log('Radar updated:', new Date(latestFrame.time * 1000).toLocaleTimeString());
+                if (allFrames.length > 0) {
+                    // Start playback from latest past frame
+                    currentFrameIndex = Math.max(0, past.length - 1);
+                    if (isPlaying) startAnimation();
+                    else showFrame(currentFrameIndex);
                 }
             } catch (error) {
                 console.error('Radar loading error:', error);
+                document.getElementById('radar-badge').textContent = 'FEHLER';
+            }
+        }
+
+        function showFrame(index) {
+            if (!allFrames[index]) return;
+            const frame = allFrames[index];
+
+            if (radarLayer) map.removeLayer(radarLayer);
+
+            radarLayer = L.tileLayer(
+                `https://tilecache.rainviewer.com${frame.path}/256/{z}/{x}/{y}/2/1_1.png`,
+                {
+                    opacity: frame.type === 'nowcast' ? 0.5 : 0.7,
+                    maxNativeZoom: 8,
+                    maxZoom: 19
+                }
+            ).addTo(map);
+
+            // Update time display
+            const time = new Date(frame.time * 1000);
+            document.getElementById('radar-time').textContent =
+                time.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
+
+            // Update badge
+            const badge = document.getElementById('radar-badge');
+            if (frame.type === 'nowcast') {
+                badge.textContent = 'PROGNOSE';
+                badge.className = 'radar-badge badge-forecast';
+            } else if (index === allFrames.findLastIndex(f => f.type === 'past')) {
+                badge.textContent = 'JETZT';
+                badge.className = 'radar-badge badge-past';
+            } else {
+                badge.textContent = 'RADAR';
+                badge.className = 'radar-badge badge-past';
+            }
+
+            // Update progress bar
+            document.getElementById('radar-progress-bar').style.width =
+                ((index + 1) / allFrames.length * 100) + '%';
+        }
+
+        function startAnimation() {
+            if (animationInterval) clearInterval(animationInterval);
+            showFrame(currentFrameIndex);
+            animationInterval = setInterval(() => {
+                currentFrameIndex = (currentFrameIndex + 1) % allFrames.length;
+                showFrame(currentFrameIndex);
+            }, 700);
+        }
+
+        function togglePlayPause() {
+            isPlaying = !isPlaying;
+            document.getElementById('btn-play-pause').textContent = isPlaying ? '⏸' : '▶';
+            if (isPlaying) {
+                startAnimation();
+            } else {
+                clearInterval(animationInterval);
             }
         }
 
         // Load radar on startup
         loadRadarData();
 
-        // Refresh every 5 minutes
-        setInterval(loadRadarData, 300000);
+        // Reload fresh data every 5 minutes
+        setInterval(() => { loadRadarData(); }, 300000);
     </script>
 </body>
 </html>

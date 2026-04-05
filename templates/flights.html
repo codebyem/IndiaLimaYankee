@@ -9,6 +9,29 @@
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap');
 
+        :root {
+            --bg-primary: #000;
+            --card-bg: rgba(0, 20, 40, 0.8);
+            --text-primary: #0ff;
+            --border-color: #0ff;
+            --border-glow: rgba(0, 255, 255, 0.3);
+            --grid-color: rgba(0, 255, 255, 0.03);
+            --scanline-color: rgba(0, 255, 255, 0.03);
+            --button-bg: rgba(0, 255, 255, 0.1);
+            --button-hover: rgba(0, 255, 255, 0.3);
+        }
+        body.light-mode {
+            --bg-primary: #e8edf5;
+            --card-bg: rgba(255, 255, 255, 0.92);
+            --text-primary: #1a365d;
+            --border-color: #3182ce;
+            --border-glow: rgba(49, 130, 206, 0.3);
+            --grid-color: rgba(49, 130, 206, 0.05);
+            --scanline-color: transparent;
+            --button-bg: rgba(49, 130, 206, 0.1);
+            --button-hover: rgba(49, 130, 206, 0.25);
+        }
+
         * {
             margin: 0;
             padding: 0;
@@ -17,12 +40,13 @@
 
         body {
             font-family: 'Orbitron', monospace;
-            background: #000;
-            color: #0ff;
+            background: var(--bg-primary);
+            color: var(--text-primary);
             height: 100vh;
             display: flex;
             flex-direction: column;
             overflow: hidden;
+            transition: background 0.4s ease, color 0.4s ease;
         }
 
         /* Animated Background */
@@ -33,8 +57,8 @@
             width: 100%;
             height: 100%;
             background:
-                linear-gradient(rgba(0, 255, 255, 0.03) 1px, transparent 1px),
-                linear-gradient(90deg, rgba(0, 255, 255, 0.03) 1px, transparent 1px);
+                linear-gradient(var(--grid-color) 1px, transparent 1px),
+                linear-gradient(90deg, var(--grid-color) 1px, transparent 1px);
             background-size: 50px 50px;
             animation: gridMove 20s linear infinite;
             z-index: 0;
@@ -51,7 +75,7 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background: linear-gradient(transparent 50%, rgba(0, 255, 255, 0.03) 50%);
+            background: linear-gradient(transparent 50%, var(--scanline-color) 50%);
             background-size: 100% 4px;
             pointer-events: none;
             animation: scan 8s linear infinite;
@@ -76,10 +100,11 @@
         header {
             text-align: center;
             padding: 0.4rem;
-            background: rgba(0, 255, 255, 0.05);
-            border: 2px solid #0ff;
+            background: var(--card-bg);
+            border: 2px solid var(--border-color);
             border-radius: 6px;
-            box-shadow: 0 0 20px rgba(0, 255, 255, 0.3), inset 0 0 20px rgba(0, 255, 255, 0.1);
+            box-shadow: 0 0 20px var(--border-glow);
+            transition: all 0.4s ease;
         }
 
         header h1 {
@@ -87,17 +112,19 @@
             font-weight: 900;
             text-transform: uppercase;
             letter-spacing: 2px;
-            text-shadow: 0 0 10px #0ff, 0 0 20px #0ff, 0 0 30px #0ff;
+            color: var(--text-primary);
+            text-shadow: 0 0 10px var(--border-glow);
         }
 
         #map {
             flex: 1;
             width: 100%;
-            border: 2px solid #0ff;
+            border: 2px solid var(--border-color);
             border-radius: 6px;
-            box-shadow: 0 0 20px rgba(0, 255, 255, 0.3);
+            box-shadow: 0 0 20px var(--border-glow);
             position: relative;
             overflow: hidden;
+            transition: border-color 0.4s ease;
         }
 
         /* ----------------------- RADAR SWEEP ----------------------- */
@@ -138,20 +165,21 @@
             font-family: 'Orbitron', monospace;
             font-size: 0.7rem;
             font-weight: 700;
-            background: rgba(0, 255, 255, 0.1);
-            color: #0ff;
-            border: 2px solid #0ff;
+            background: var(--button-bg);
+            color: var(--text-primary);
+            border: 2px solid var(--border-color);
             border-radius: 4px;
             cursor: pointer;
-            transition: all 0.2s;
+            transition: background 0.2s, box-shadow 0.2s;
             text-transform: uppercase;
             letter-spacing: 1px;
-            box-shadow: 0 0 10px rgba(0, 255, 255, 0.3);
+            box-shadow: 0 0 10px var(--border-glow);
+            touch-action: manipulation;
         }
 
         nav button:hover {
-            background: rgba(0, 255, 255, 0.3);
-            box-shadow: 0 0 20px rgba(0, 255, 255, 0.6);
+            background: var(--button-hover);
+            box-shadow: 0 0 20px var(--border-glow);
             transform: translateY(-2px);
         }
 
@@ -163,8 +191,8 @@
             position: absolute;
             top: 80px;
             right: 10px;
-            background: rgba(0, 30, 60, 0.92);
-            border: 2px solid #0ff;
+            background: var(--card-bg);
+            border: 2px solid var(--border-color);
             padding: 1.2rem;
             border-radius: 10px;
             font-size: 0.85rem;
@@ -191,11 +219,11 @@
         }
 
         .info-box h3 {
-            color: #0ff;
+            color: var(--text-primary);
             margin-bottom: 0.5rem;
             text-transform: uppercase;
             font-size: 0.9rem;
-            text-shadow: 0 0 10px #0ff;
+            text-shadow: 0 0 10px var(--border-glow);
         }
 
         .flight-count {
@@ -341,6 +369,7 @@
     </style>
 </head>
 <body>
+    <script>(function(){if(localStorage.getItem('theme')==='light')document.body.classList.add('light-mode');})();</script>
     <div class="bg-grid"></div>
     <div class="scanline"></div>
 
@@ -374,7 +403,11 @@
         const homeLon = 8.3853;
         const map = L.map('map').setView([homeLat, homeLon], 8);
 
-        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+        const isLight = document.body.classList.contains('light-mode');
+        const tileUrl = isLight
+            ? 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png'
+            : 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png';
+        L.tileLayer(tileUrl, {
             attribution: '© OpenStreetMap, © CartoDB',
             maxZoom: 19
         }).addTo(map);
