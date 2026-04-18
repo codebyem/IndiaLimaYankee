@@ -42,6 +42,7 @@ fi
 echo "Using: $CHROMIUM_BIN"
 "$CHROMIUM_BIN" \
   --kiosk \
+  --ozone-platform=wayland \
   --app=http://localhost:5000 \
   --start-fullscreen \
   --window-size=800,480 \
@@ -51,6 +52,7 @@ echo "Using: $CHROMIUM_BIN"
   --disable-infobars \
   --disable-session-crashed-bubble \
   --disable-restore-session-state \
-  --password-store=basic
+  --password-store=basic \
+  --disable-translate
 
 echo "Dashboard closed."
