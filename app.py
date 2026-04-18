@@ -696,10 +696,14 @@ def api_skycards():
     try:
         resp = httpx.get(
             "https://www.reddit.com/r/Skycards/new.json?limit=10",
-            timeout=10,
-            headers={"User-Agent": "AviationDashboard/1.0"},
+            timeout=15,
+            headers={
+                "User-Agent": "Mozilla/5.0 (compatible; AviationDashboard/1.0)",
+                "Accept": "application/json",
+            },
             follow_redirects=True
         )
+        logger.info(f"Reddit status: {resp.status_code}, length: {len(resp.text)}")
         data = resp.json()
         posts = []
         for child in data.get("data", {}).get("children", []):
@@ -707,7 +711,7 @@ def api_skycards():
             posts.append({
                 "title": p.get("title", ""),
                 "url": f"https://reddit.com{p.get('permalink', '')}",
-                "thumbnail": p.get("thumbnail") if p.get("thumbnail", "").startswith("http") else None,
+                "thumbnail": p.get("thumbnail", "").replace("&amp;", "&") if p.get("thumbnail", "").startswith("http") else None,
                 "score": p.get("score", 0),
                 "num_comments": p.get("num_comments", 0),
                 "created_utc": p.get("created_utc", 0),

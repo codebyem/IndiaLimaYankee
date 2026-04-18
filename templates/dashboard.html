@@ -945,16 +945,8 @@
             }
         }
 
-        function openSkycards() {
-            const modal = document.getElementById('skycards-modal');
-            const postsEl = document.getElementById('skycards-posts');
-            modal.classList.add('open');
-
-            if (skycardsData.length === 0) {
-                postsEl.innerHTML = '<span style="font-size:0.5rem;opacity:0.6;">Keine Posts geladen</span>';
-                return;
-            }
-            postsEl.innerHTML = skycardsData.map(p => {
+        function renderSkycardsPosts(posts) {
+            return posts.map(p => {
                 const age = Math.floor((Date.now() / 1000 - p.created_utc) / 3600);
                 return `
                     <a class="skycards-post" href="${p.url}" target="_blank" rel="noopener">
@@ -966,6 +958,32 @@
                     </a>
                 `;
             }).join('');
+        }
+
+        async function openSkycards() {
+            const modal = document.getElementById('skycards-modal');
+            const postsEl = document.getElementById('skycards-posts');
+            modal.classList.add('open');
+
+            if (skycardsData.length > 0) {
+                postsEl.innerHTML = renderSkycardsPosts(skycardsData);
+                return;
+            }
+
+            // Noch keine Daten — live nachladen
+            postsEl.innerHTML = '<span class="loading"></span>';
+            try {
+                const resp = await fetch('/api/skycards');
+                const data = await resp.json();
+                skycardsData = data.posts || [];
+                if (skycardsData.length === 0) {
+                    postsEl.innerHTML = '<span style="font-size:0.6rem;opacity:0.6;">Keine Posts gefunden</span>';
+                } else {
+                    postsEl.innerHTML = renderSkycardsPosts(skycardsData);
+                }
+            } catch (e) {
+                postsEl.innerHTML = '<span style="font-size:0.6rem;opacity:0.6;">Fehler beim Laden</span>';
+            }
         }
 
         function closeSkycards(e) {
