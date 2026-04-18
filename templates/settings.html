@@ -569,6 +569,14 @@
             </div>
 
             <!-- INFO SECTION -->
+            <div class="settings-section" id="kiosk-section">
+                <h2><span class="material-icons" style="font-size: 0.9rem;">exit_to_app</span> KIOSK</h2>
+                <div style="font-size: 0.65rem; opacity: 0.7; margin-bottom: 0.6rem;">Chromium beenden und zum Desktop zurückkehren.</div>
+                <button id="exit-btn" onclick="exitKiosk()" style="border-color: #f55; color: #f55; width: 100%;">
+                    <span class="material-icons" style="font-size: 0.8rem;">power_settings_new</span> KIOSK BEENDEN
+                </button>
+            </div>
+
             <div class="settings-section">
                 <h2><span class="material-icons" style="font-size: 0.9rem;">info</span> INFO</h2>
                 <div style="font-size: 0.65rem; line-height: 1.4; opacity: 0.8;">
@@ -752,6 +760,13 @@
         document.getElementById('airport-icao').addEventListener('input', function(e) {
             e.target.value = e.target.value.toUpperCase();
         });
+
+        async function exitKiosk() {
+            const btn = document.getElementById('exit-btn');
+            btn.textContent = 'BEENDE...';
+            btn.disabled = true;
+            await fetch('/api/exit-kiosk', { method: 'POST' });
+        }
     </script>
 </body>
 </html>

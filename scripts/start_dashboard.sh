@@ -50,6 +50,7 @@ echo "Using: $CHROMIUM_BIN"
   --noerrdialogs \
   --disable-infobars \
   --disable-session-crashed-bubble \
-  --disable-restore-session-state
+  --disable-restore-session-state \
+  --password-store=basic
 
 echo "Dashboard closed."

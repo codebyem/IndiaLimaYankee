@@ -659,6 +659,17 @@ def api_config():
     })
 
 
+@app.route("/api/exit-kiosk", methods=['POST'])
+def api_exit_kiosk():
+    """Close Chromium kiosk on the Pi"""
+    import subprocess
+    try:
+        subprocess.Popen(['pkill', '-f', 'chromium'])
+        return jsonify({"status": "ok"})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
 @app.route("/api/flights")
 def api_flights():
     """Proxy OpenSky Network flight data to avoid CORS issues"""
