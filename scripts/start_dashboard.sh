@@ -4,9 +4,13 @@
 
 echo "Flight Desk - Starting..."
 
-# 1. Boot-Animation zeigen (falls vorhanden)
+# 1. Boot-Animation im Fullscreen-Terminal zeigen
 if [ -f /usr/local/bin/boot.sh ]; then
-    /usr/local/bin/boot.sh
+    if command -v foot &>/dev/null; then
+        foot --fullscreen -- bash /usr/local/bin/boot.sh
+    else
+        /usr/local/bin/boot.sh
+    fi
 fi
 
 # 2. Warte bis Service läuft (max 60 Sekunden)
