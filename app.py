@@ -387,14 +387,13 @@ def fetch_station_info(station="EDLP"):
                 surface_raw = rwy.get("surface", {})
                 surface = surface_raw.get("value", "") if isinstance(surface_raw, dict) else surface_raw
                 runways.append({
-                    "ident": f"{rwy.get('ident_1', '?')}/{rwy.get('ident_2', '?')}",
+                    "ident": f"{rwy.get('ident1', '?')}/{rwy.get('ident2', '?')}",
                     "length_ft": int(length_ft) if length_ft else 0,
                     "surface": surface,
                     "lights": rwy.get("lights", False)
                 })
 
-            elev_raw = data.get("elevation", {})
-            elev_ft = elev_raw.get("value", 0) if isinstance(elev_raw, dict) else (elev_raw or 0)
+            elev_ft = data.get("elevation_ft") or 0
 
             logger.info(f"Station info fetched for {station}: {data.get('name')}")
             return {
@@ -434,6 +433,9 @@ def after_request(response):
 @app.errorhandler(Exception)
 def handle_exception(e):
     """Global error handler — keeps the server running on unexpected errors"""
+    from werkzeug.exceptions import HTTPException
+    if isinstance(e, HTTPException):
+        return e
     logger.error(f"Unhandled exception: {e}", exc_info=True)
     if request.path.startswith('/api/'):
         return jsonify({"error": "Internal server error"}), 500
@@ -655,6 +657,55 @@ def api_config():
             "sunmoon": "1 hour"
         }
     })
+
+
+@app.route("/api/flights")
+def api_flights():
+    """Proxy OpenSky Network flight data to avoid CORS issues"""
+    try:
+        lat_delta = float(request.args.get('lat_delta', 1.5))
+        lon_delta = float(request.args.get('lon_delta', 2.0))
+        lat = float(request.args.get('lat', HOME_LAT))
+        lon = float(request.args.get('lon', HOME_LON))
+        url = (
+            f"https://opensky-network.org/api/states/all"
+            f"?lamin={lat-lat_delta}&lomin={lon-lon_delta}"
+            f"&lamax={lat+lat_delta}&lomax={lon+lon_delta}"
+        )
+        resp = httpx.get(url, timeout=10, headers={"User-Agent": "AviationDashboard/1.0"})
+        return jsonify(resp.json())
+    except Exception as e:
+        logger.error(f"Flights API error: {e}")
+        return jsonify({"states": None, "error": str(e)}), 200
+
+
+@app.route("/api/skycards")
+def api_skycards():
+    """Fetch latest posts from r/Skycards"""
+    try:
+        resp = httpx.get(
+            "https://www.reddit.com/r/Skycards/new.json?limit=10",
+            timeout=10,
+            headers={"User-Agent": "AviationDashboard/1.0"},
+            follow_redirects=True
+        )
+        data = resp.json()
+        posts = []
+        for child in data.get("data", {}).get("children", []):
+            p = child["data"]
+            posts.append({
+                "title": p.get("title", ""),
+                "url": f"https://reddit.com{p.get('permalink', '')}",
+                "thumbnail": p.get("thumbnail") if p.get("thumbnail", "").startswith("http") else None,
+                "score": p.get("score", 0),
+                "num_comments": p.get("num_comments", 0),
+                "created_utc": p.get("created_utc", 0),
+                "author": p.get("author", ""),
+            })
+        return jsonify({"posts": posts})
+    except Exception as e:
+        logger.error(f"Skycards API error: {e}")
+        return jsonify({"posts": [], "error": str(e)}), 200
 
 
 if __name__ == "__main__":

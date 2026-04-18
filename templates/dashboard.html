@@ -242,7 +242,7 @@
         .flight-rules.LIFR { background: rgba(255, 0, 0, 0.2); color: #f00; border-color: #f00; }
 
         .metar-raw {
-            font-size: 0.45rem;
+            font-size: 0.55rem;
             background: rgba(0, 0, 0, 0.5);
             padding: 0.3rem;
             border-radius: 4px;
@@ -270,12 +270,12 @@
         }
 
         .data-label {
-            font-size: 0.55rem;
+            font-size: 0.6rem;
             opacity: 0.7;
         }
 
         .data-value {
-            font-size: 0.7rem;
+            font-size: 0.75rem;
             font-weight: 700;
             color: #0ff;
         }
@@ -314,7 +314,7 @@
         }
 
         .dino-fact {
-            font-size: 0.45rem;
+            font-size: 0.55rem;
             line-height: 1.1;
             opacity: 0.9;
         }
@@ -348,15 +348,22 @@
             text-shadow: 0 0 20px #fa0;
         }
 
+        .countdown-prefix {
+            font-size: 0.6rem;
+            opacity: 0.7;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
         .countdown-unit {
-            font-size: 0.45rem;
+            font-size: 0.6rem;
             opacity: 0.7;
             text-transform: uppercase;
             letter-spacing: 1px;
         }
 
         .countdown-label {
-            font-size: 0.5rem;
+            font-size: 0.6rem;
             color: #0ff;
             opacity: 0.9;
             text-transform: uppercase;
@@ -369,7 +376,7 @@
         }
 
         .countdown-date {
-            font-size: 0.4rem;
+            font-size: 0.55rem;
             opacity: 0.5;
             font-family: 'Courier New', monospace;
         }
@@ -439,7 +446,7 @@
         }
 
         .station-name {
-            font-size: 0.5rem;
+            font-size: 0.6rem;
             opacity: 0.85;
             margin-bottom: 0.3rem;
             line-height: 1.3;
@@ -456,9 +463,9 @@
             background: rgba(0, 255, 255, 0.05);
             border: 1px solid rgba(0, 255, 255, 0.2);
             border-radius: 3px;
-            padding: 0.2rem 0.4rem;
+            padding: 0.25rem 0.4rem;
             margin-bottom: 0.2rem;
-            font-size: 0.48rem;
+            font-size: 0.58rem;
             display: flex;
             justify-content: space-between;
             align-items: center;
@@ -470,21 +477,147 @@
         }
 
         .station-type {
-            font-size: 0.42rem;
+            font-size: 0.55rem;
             opacity: 0.55;
             margin-top: 0.3rem;
             text-transform: uppercase;
         }
 
+        /* SKYCARDS */
+        #skycards-card {
+            display: none;
+        }
+
+        .skycards-preview {
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            overflow: hidden;
+        }
+
+        .skycards-thumb {
+            width: 40px;
+            height: 40px;
+            object-fit: cover;
+            border-radius: 3px;
+            border: 1px solid rgba(0,255,255,0.3);
+            flex-shrink: 0;
+        }
+
+        .skycards-top-title {
+            font-size: 0.55rem;
+            color: #0ff;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            flex: 1;
+        }
+
+        .skycards-meta {
+            font-size: 0.4rem;
+            opacity: 0.5;
+            white-space: nowrap;
+        }
+
+        /* Skycards Modal */
+        #skycards-modal {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.85);
+            z-index: 9999;
+            justify-content: center;
+            align-items: center;
+        }
+
+        #skycards-modal.open {
+            display: flex;
+        }
+
+        .skycards-modal-inner {
+            background: var(--card-bg);
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            padding: 1rem;
+            width: min(90vw, 560px);
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: 0 0 30px var(--border-glow);
+        }
+
+        .skycards-modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.8rem;
+        }
+
+        .skycards-modal-header h2 {
+            font-size: 0.8rem;
+            color: #0ff;
+            margin: 0;
+        }
+
+        .skycards-close {
+            background: none;
+            border: 1px solid rgba(0,255,255,0.4);
+            color: #0ff;
+            font-size: 0.7rem;
+            padding: 0.2rem 0.5rem;
+            border-radius: 4px;
+            cursor: pointer;
+            font-family: 'Orbitron', monospace;
+        }
+
+        .skycards-post {
+            display: flex;
+            gap: 0.6rem;
+            padding: 0.5rem 0;
+            border-bottom: 1px solid rgba(0,255,255,0.1);
+            text-decoration: none;
+            color: inherit;
+        }
+
+        .skycards-post:last-child {
+            border-bottom: none;
+        }
+
+        .skycards-post-thumb {
+            width: 56px;
+            height: 56px;
+            object-fit: cover;
+            border-radius: 4px;
+            border: 1px solid rgba(0,255,255,0.2);
+            flex-shrink: 0;
+        }
+
+        .skycards-post-info {
+            flex: 1;
+            overflow: hidden;
+        }
+
+        .skycards-post-title {
+            font-size: 0.55rem;
+            color: #0ff;
+            line-height: 1.3;
+            margin-bottom: 0.2rem;
+        }
+
+        .skycards-post-meta {
+            font-size: 0.55rem;
+            opacity: 0.5;
+        }
+
         /* Navigation */
         nav {
             display: grid;
-            grid-template-columns: repeat(4, 1fr);
+            grid-template-columns: repeat(5, 1fr);
             gap: 0.3rem;
         }
 
         nav button {
-            padding: 0.5rem;
+            padding: 0.6rem 0.3rem;
+            min-height: 44px;
             font-family: 'Orbitron', monospace;
             font-size: 0.65rem;
             font-weight: 700;
@@ -634,12 +767,32 @@
                     <span class="loading"></span>
                 </div>
             </div>
+
+            <!-- SKYCARDS -->
+            <div class="card" id="skycards-card" onclick="openSkycards()">
+                <h2>r/SKYCARDS</h2>
+                <div id="skycards-preview" class="skycards-preview">
+                    <span class="loading"></span>
+                </div>
+            </div>
         </main>
+
+        <!-- Skycards Modal -->
+        <div id="skycards-modal" onclick="closeSkycards(event)">
+            <div class="skycards-modal-inner">
+                <div class="skycards-modal-header">
+                    <h2>r/SKYCARDS — NEUESTE POSTS</h2>
+                    <button class="skycards-close" onclick="closeSkycards()">SCHLIESSEN</button>
+                </div>
+                <div id="skycards-posts"><span class="loading"></span></div>
+            </div>
+        </div>
 
         <nav>
             <button onclick="location.href='/'">HOME</button>
             <button onclick="location.href='/weather'">WETTER</button>
             <button onclick="location.href='/flights'">FLÜGE</button>
+            <button onclick="openSkycards()">r/SKY</button>
             <button onclick="location.href='/settings'">SETTINGS</button>
         </nav>
     </div>
@@ -683,8 +836,9 @@
                 const prefix = isPast ? 'VOR' : 'NOCH';
 
                 el.innerHTML = `
+                    <div class="countdown-prefix">${prefix}</div>
                     <div class="countdown-days ${isPast ? 'past' : ''}">${absDays}</div>
-                    <div class="countdown-unit">${prefix} ${unit}</div>
+                    <div class="countdown-unit">${unit}</div>
                     <div class="countdown-label">${data.label}</div>
                     <div class="countdown-date">${data.date}</div>
                 `;
@@ -764,6 +918,62 @@
             }
         }
 
+        // Skycards
+        let skycardsData = [];
+
+        async function loadSkycards() {
+            try {
+                const resp = await fetch('/api/skycards');
+                const data = await resp.json();
+                skycardsData = data.posts || [];
+
+                const preview = document.getElementById('skycards-preview');
+                if (skycardsData.length === 0) {
+                    preview.innerHTML = '<span style="font-size:0.5rem;opacity:0.6;">Keine Posts</span>';
+                    return;
+                }
+                const top = skycardsData[0];
+                const age = Math.floor((Date.now() / 1000 - top.created_utc) / 3600);
+                preview.innerHTML = `
+                    ${top.thumbnail ? `<img class="skycards-thumb" src="${top.thumbnail}" alt="">` : ''}
+                    <div class="skycards-top-title">${top.title}</div>
+                    <div class="skycards-meta">${age}h · ${top.score}↑</div>
+                `;
+            } catch (e) {
+                document.getElementById('skycards-preview').innerHTML =
+                    '<span style="font-size:0.5rem;opacity:0.6;">Error</span>';
+            }
+        }
+
+        function openSkycards() {
+            const modal = document.getElementById('skycards-modal');
+            const postsEl = document.getElementById('skycards-posts');
+            modal.classList.add('open');
+
+            if (skycardsData.length === 0) {
+                postsEl.innerHTML = '<span style="font-size:0.5rem;opacity:0.6;">Keine Posts geladen</span>';
+                return;
+            }
+            postsEl.innerHTML = skycardsData.map(p => {
+                const age = Math.floor((Date.now() / 1000 - p.created_utc) / 3600);
+                return `
+                    <a class="skycards-post" href="${p.url}" target="_blank" rel="noopener">
+                        ${p.thumbnail ? `<img class="skycards-post-thumb" src="${p.thumbnail}" alt="">` : ''}
+                        <div class="skycards-post-info">
+                            <div class="skycards-post-title">${p.title}</div>
+                            <div class="skycards-post-meta">u/${p.author} · ${age}h · ${p.score}↑ · ${p.num_comments} Kommentare</div>
+                        </div>
+                    </a>
+                `;
+            }).join('');
+        }
+
+        function closeSkycards(e) {
+            if (!e || e.target === document.getElementById('skycards-modal')) {
+                document.getElementById('skycards-modal').classList.remove('open');
+            }
+        }
+
         // Initialize
         updateDateTime();
         setInterval(updateDateTime, 1000);
@@ -772,6 +982,8 @@
         loadAstro();
         loadStation();
         loadCountdown();
+        loadSkycards();
+        setInterval(loadSkycards, 300000);
 
         // Refresh countdown hourly
         setInterval(loadCountdown, 3600000);

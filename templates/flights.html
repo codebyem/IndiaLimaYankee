@@ -161,7 +161,8 @@
         }
 
         nav button {
-            padding: 0.6rem;
+            padding: 0.6rem 0.3rem;
+            min-height: 44px;
             font-family: 'Orbitron', monospace;
             font-size: 0.7rem;
             font-weight: 700;
@@ -485,8 +486,7 @@
             try {
                 const latDelta = 1.5;
                 const lonDelta = 2.0;
-                const bbox = `lamin=${homeLat-latDelta}&lomin=${homeLon-lonDelta}&lamax=${homeLat+latDelta}&lomax=${homeLon+lonDelta}`;
-                const url = `https://opensky-network.org/api/states/all?${bbox}`;
+                const url = `/api/flights?lat=${homeLat}&lon=${homeLon}&lat_delta=${latDelta}&lon_delta=${lonDelta}`;
 
                 const resp = await fetch(url);
                 const data = await resp.json();

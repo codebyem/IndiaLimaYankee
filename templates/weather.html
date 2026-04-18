@@ -140,7 +140,8 @@
         }
 
         nav button {
-            padding: 0.5rem;
+            padding: 0.6rem 0.3rem;
+            min-height: 44px;
             font-family: 'Orbitron', monospace;
             font-size: 0.65rem;
             font-weight: 700;
@@ -168,11 +169,11 @@
 
         .legend {
             position: absolute;
-            bottom: 80px;
+            top: 10px;
             right: 10px;
             background: var(--card-bg);
-            border: 2px solid var(--border-color);
-            padding: 0.8rem;
+            border: 1px solid var(--border-color);
+            padding: 0.4rem 0.5rem;
             border-radius: 6px;
             font-size: 0.7rem;
             z-index: 1000;
@@ -182,22 +183,23 @@
 
         .legend h3 {
             color: var(--text-primary);
-            margin-bottom: 0.5rem;
-            font-size: 0.8rem;
+            margin-bottom: 0.3rem;
+            font-size: 0.6rem;
         }
 
         .legend-item {
             display: flex;
             align-items: center;
-            margin-bottom: 0.3rem;
+            margin-bottom: 0.2rem;
+            font-size: 0.55rem;
         }
 
         .legend-color {
-            width: 20px;
-            height: 20px;
-            margin-right: 0.5rem;
-            border-radius: 4px;
-            border: 1px solid var(--border-color);
+            width: 12px;
+            height: 12px;
+            margin-right: 0.35rem;
+            border-radius: 2px;
+            flex-shrink: 0;
         }
 
         /* Radar Animation Controls */
@@ -221,9 +223,9 @@
         }
 
         .radar-badge {
-            padding: 0.15rem 0.4rem;
+            padding: 0.2rem 0.5rem;
             border-radius: 3px;
-            font-size: 0.5rem;
+            font-size: 0.6rem;
             font-weight: 700;
             min-width: 4rem;
             text-align: center;
@@ -281,7 +283,27 @@
             </h1>
         </header>
 
-        <div id="map"></div>
+        <div id="map">
+            <div class="legend">
+                <h3>NIEDERSCHLAG</h3>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #0099ff;"></div>
+                    Leicht
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #00ff00;"></div>
+                    Mäßig
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #ffff00;"></div>
+                    Stark
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #ff0000;"></div>
+                    Gewitter
+                </div>
+            </div>
+        </div>
 
         <!-- Radar Animation Controls -->
         <div id="radar-controls">
@@ -289,26 +311,6 @@
             <div id="radar-badge" class="radar-badge badge-past">LADEN...</div>
             <div id="radar-progress"><div id="radar-progress-bar" style="width:0%"></div></div>
             <button id="btn-play-pause" onclick="togglePlayPause()">⏸</button>
-        </div>
-
-        <div class="legend">
-            <h3>NIEDERSCHLAG</h3>
-            <div class="legend-item">
-                <div class="legend-color" style="background: #0099ff;"></div>
-                Leicht
-            </div>
-            <div class="legend-item">
-                <div class="legend-color" style="background: #00ff00;"></div>
-                Mäßig
-            </div>
-            <div class="legend-item">
-                <div class="legend-color" style="background: #ffff00;"></div>
-                Stark
-            </div>
-            <div class="legend-item">
-                <div class="legend-color" style="background: #ff0000;"></div>
-                Gewitter
-            </div>
         </div>
 
         <nav>
@@ -357,8 +359,7 @@
         });
 
         L.marker([homeLat, homeLon], { icon: homeIcon }).addTo(map)
-            .bindPopup('<b style="color: #0ff;">HOME BASE</b>')
-            .openPopup();
+            .bindPopup('<b style="color: #0ff;">HOME BASE</b>');
 
         // Radar Animation
         let radarLayer = null;
@@ -398,7 +399,7 @@
                 `https://tilecache.rainviewer.com${frame.path}/256/{z}/{x}/{y}/2/1_1.png`,
                 {
                     opacity: frame.type === 'nowcast' ? 0.5 : 0.7,
-                    maxNativeZoom: 8,
+                    maxNativeZoom: 7,
                     maxZoom: 19
                 }
             ).addTo(map);
