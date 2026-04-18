@@ -4,13 +4,12 @@
 
 echo "Flight Desk - Starting..."
 
-# 1. Warte bis Wayland-Compositor bereit ist
-sleep 3
-
-# 2. Boot-Animation im Fullscreen-Terminal zeigen
+# 1. Boot-Animation im Fullscreen-Terminal zeigen
 if [ -f /usr/local/bin/boot.sh ]; then
     if command -v foot &>/dev/null; then
-        foot --fullscreen -- bash -c '/usr/local/bin/boot.sh; sleep 1'
+        foot --fullscreen -- bash /usr/local/bin/boot.sh
+    else
+        /usr/local/bin/boot.sh
     fi
 fi
 
@@ -58,6 +57,6 @@ echo "Using: $CHROMIUM_BIN"
   --disable-session-crashed-bubble \
   --disable-restore-session-state \
   --password-store=basic \
-  --disable-features=TranslateUI
+  --disable-translate
 
 echo "Dashboard closed."
