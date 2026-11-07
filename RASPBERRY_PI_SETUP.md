@@ -112,8 +112,7 @@ nano .env
 # Get your NASA API key at: https://api.nasa.gov/
 NASA_API_KEY=your_actual_nasa_api_key_here
 
-# Get your AVWX token at: https://account.avwx.rest/
-AVWX_TOKEN=your_actual_avwx_token_here
+# METAR/TAF (aviationweather.gov) and flights (adsb.lol) need no keys
 
 # Optional: Strava integration
 STRAVA_CLIENT_ID=your_strava_client_id

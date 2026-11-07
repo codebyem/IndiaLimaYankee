@@ -36,7 +36,6 @@ sudo bash install_service.sh
 
 Get your free API keys from:
 - **NASA API**: https://api.nasa.gov/
-- **AVWX Weather**: https://account.avwx.rest/
 - **Strava** (optional): https://www.strava.com/settings/api
 
 ## Features
@@ -72,7 +71,7 @@ nano .env
 
 ### 3. Server starten:
 ```bash
-python app_improved.py
+python app.py
 ```
 
 ## Environment Variables (.env)
@@ -80,7 +79,7 @@ python app_improved.py
 ```env
 # API Keys
 NASA_API_KEY=dein_nasa_key_hier
-AVWX_TOKEN=dein_avwx_token_hier
+FLASK_DEBUG=0
 
 # Koordinaten (Gütersloh)
 HOME_LAT=51.963
@@ -141,7 +140,8 @@ curl http://localhost:5000/api/health
   "timestamp": "2025-01-15T10:30:00",
   "services": {
     "nasa": "ok",
-    "avwx": "ok"
+    "aviationweather": "ok",
+    "adsb": "ok"
   }
 }
 ```

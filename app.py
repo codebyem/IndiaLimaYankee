@@ -2,11 +2,19 @@ from flask import Flask, render_template, jsonify, request
 import httpx
 from datetime import datetime, date, timedelta
 import json
+import math
 import os
+import re
 import logging
+from html import unescape
+import xml.etree.ElementTree as ET
 from logging.handlers import RotatingFileHandler
-from functools import lru_cache, wraps
+from functools import wraps
 from time import time
+from dotenv import load_dotenv
+
+# Load .env next to this file (works regardless of the working directory)
+load_dotenv(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".env"))
 
 # === LOGGING SETUP ===
 logging.basicConfig(
@@ -18,12 +26,22 @@ logging.basicConfig(
     ]
 )
 logger = logging.getLogger(__name__)
+# httpx logs full request URLs at INFO — that would write the NASA key into the log file
+logging.getLogger("httpx").setLevel(logging.WARNING)
 
 app = Flask(__name__)
 
 # === ENVIRONMENT VARIABLES ===
-NASA_API_KEY = os.getenv("NASA_API_KEY", "ZXJWkvMvUtYeyDjAVbEjlxR8wkM7tWqgUkinyDwg")
-AVWX_TOKEN = os.getenv("AVWX_TOKEN", "0z3Owy4pPyW3RMKfkdRghFWcZdetlrikqOg6vXgx7VQ")
+# NASA's public DEMO_KEY works without signup (rate-limited); set your own in .env
+NASA_API_KEY = os.getenv("NASA_API_KEY") or "DEMO_KEY"
+
+# Free, keyless data sources
+AWC_API = "https://aviationweather.gov/api/data"   # METAR / TAF / airport info
+ADSB_API = "https://api.adsb.lol/v2"               # live aircraft positions
+HTTP_HEADERS = {"User-Agent": "AviationDashboard/2.0 (+https://github.com/codebyem/IndiaLimaYankee)"}
+
+# Debug mode exposes the Werkzeug debugger (remote code execution) — only enable locally
+DEBUG = os.getenv("FLASK_DEBUG", "0").lower() in ("1", "true", "yes")
 
 # Home Coordinates
 HOME_LAT = float(os.getenv("HOME_LAT", "51.963"))
@@ -37,8 +55,12 @@ logger.info(f"Starting Aviation Dashboard with coordinates: {HOME_LAT}, {HOME_LO
 
 
 # === CACHING DECORATOR ===
-def timed_cache(seconds=300):
-    """Cache decorator with time-based expiration"""
+def timed_cache(seconds=300, cache_if=lambda result: True):
+    """Cache decorator with time-based expiration.
+
+    cache_if decides whether a result is worth keeping — fallback/error results
+    must not be cached, otherwise one timeout shows N/A until the cache expires.
+    """
 
     def decorator(func):
         cache = {}
@@ -56,7 +78,10 @@ def timed_cache(seconds=300):
 
             logger.debug(f"Cache MISS for {func.__name__}")
             result = func(*args, **kwargs)
-            cache[key] = (result, now)
+            if cache_if(result):
+                cache[key] = (result, now)
+            else:
+                logger.warning(f"{func.__name__} returned fallback data — not caching")
             return result
 
         wrapper.clear_cache = lambda: cache.clear()
@@ -165,32 +190,58 @@ def get_countdown_data():
 
 # === CACHED API FUNCTIONS ===
 
-@timed_cache(seconds=300)
-def fetch_metar(station="EDLP"):
-    """Fetch METAR data from AVWX API - Cached for 5 minutes"""
-    url = f"https://avwx.rest/api/metar/{station}"
-    headers = {"Authorization": f"BEARER {AVWX_TOKEN}"}
+def awc_get(product, station):
+    """Query aviationweather.gov; returns the first JSON record or None (one retry on timeout)"""
+    for attempt in (1, 2):
+        try:
+            resp = httpx.get(f"{AWC_API}/{product}", params={"ids": station, "format": "json"},
+                             headers=HTTP_HEADERS, timeout=10)
+            break
+        except httpx.TimeoutException:
+            if attempt == 2:
+                raise
+            logger.warning(f"AWC {product} timeout for {station}, retrying")
+    if resp.status_code != 200 or not resp.text.strip():
+        logger.error(f"AWC {product} returned status {resp.status_code} for {station}")
+        return None
+    data = resp.json()
+    return data[0] if data else None
 
+
+def format_visibility(visib):
+    """AWC reports statute miles ('6+' = 10 km or more) — convert to km"""
+    if visib is None:
+        return "N/A"
+    text = str(visib)
+    if text.endswith("+"):
+        return "≥10"
+    try:
+        return f"{float(text) * 1.609:.1f}".rstrip("0").rstrip(".")
+    except ValueError:
+        return text
+
+
+@timed_cache(seconds=300, cache_if=lambda r: r["raw"] != "METAR nicht verfügbar")
+def fetch_metar(station="EDLP"):
+    """Fetch METAR from aviationweather.gov (no key) - Cached for 5 minutes"""
     try:
         logger.info(f"Fetching METAR for {station}")
-        resp = httpx.get(url, headers=headers, timeout=10)
+        data = awc_get("metar", station)
 
-        if resp.status_code == 200:
-            data = resp.json()
-            logger.info(f"METAR received for {station}: {data.get('flight_rules', 'N/A')}")
+        if data:
+            logger.info(f"METAR received for {station}: {data.get('fltCat', 'N/A')}")
+            wdir = data.get("wdir")
             return {
-                "station": data.get("station", "N/A"),
-                "raw": data.get("raw", "Keine Daten verfügbar"),
-                "flight_rules": data.get("flight_rules", "N/A"),
-                "wind_direction": data.get("wind_direction", {}).get("value", "N/A"),
-                "wind_speed": data.get("wind_speed", {}).get("value", "N/A"),
-                "temperature": data.get("temperature", {}).get("value", "N/A"),
-                "dewpoint": data.get("dewpoint", {}).get("value", "N/A"),
-                "visibility": data.get("visibility", {}).get("value", "N/A"),
-                "altimeter": data.get("altimeter", {}).get("value", "N/A"),
+                "station": data.get("icaoId", station),
+                "raw": data.get("rawOb", "Keine Daten verfügbar"),
+                "flight_rules": data.get("fltCat") or "N/A",
+                "wind_direction": "VRB" if wdir == "VRB" else (wdir if wdir is not None else "N/A"),
+                "wind_speed": data.get("wspd", "N/A"),
+                "temperature": data.get("temp", "N/A"),
+                "dewpoint": data.get("dewp", "N/A"),
+                "visibility": format_visibility(data.get("visib")),
+                "altimeter": round(data["altim"]) if data.get("altim") is not None else "N/A",
             }
-        else:
-            logger.error(f"METAR API returned status {resp.status_code} for {station}")
     except Exception as e:
         logger.error(f"METAR Error for {station}: {e}")
 
@@ -207,74 +258,98 @@ def fetch_metar(station="EDLP"):
     }
 
 
-@timed_cache(seconds=3600)
-def fetch_nasa_apod():
-    """Fetch NASA Astronomy Picture of the Day - Cached for 1 hour"""
-    url = f"https://api.nasa.gov/planetary/apod?api_key={NASA_API_KEY}"
+APOD_FALLBACK = {
+    "title": "Hubble Ultra Deep Field",
+    "url": "https://cdn.esahubble.org/archives/images/screen/heic0611b.jpg",
+    "media_type": "image",
+    "explanation": "Das Hubble Ultra Deep Field - ein Blick in die Tiefen des Universums."
+}
 
-    try:
-        logger.info("Fetching NASA APOD")
-        resp = httpx.get(url, timeout=10)
 
-        if resp.status_code == 200:
-            data = resp.json()
-            media_type = data.get("media_type", "image")
+def _apod_from_api():
+    """api.nasa.gov — often returns 500 or a 'NASA Science' placeholder since APOD moved"""
+    resp = httpx.get("https://api.nasa.gov/planetary/apod",
+                     params={"api_key": NASA_API_KEY}, headers=HTTP_HEADERS, timeout=10)
+    if resp.status_code != 200:
+        logger.warning(f"APOD API returned {resp.status_code}")
+        return None
+    data = resp.json()
+    url = data.get("url", "")
+    # Placeholder response: title "NASA Science" with the NASA logo as image
+    if not url or "nasa-logo" in url or data.get("title", "").strip() == "NASA Science":
+        logger.warning("APOD API returned placeholder data")
+        return None
 
-            if media_type == "video":
-                video_url = data.get("url", "")
-                if "youtube.com/watch" in video_url:
-                    video_id = video_url.split("v=")[1].split("&")[0] if "v=" in video_url else ""
-                    video_url = f"https://www.youtube.com/embed/{video_id}" if video_id else video_url
-
-                logger.info(f"NASA APOD: Video - {data.get('title', 'Unknown')}")
-                return {
-                    "title": data.get("title", "NASA Video"),
-                    "url": video_url,
-                    "media_type": "video",
-                    "explanation": data.get("explanation", "")[:150] + "..."
-                }
-            else:
-                image_url = data.get("url", "")
-                try:
-                    test = httpx.head(image_url, timeout=3)
-                    if test.status_code == 200:
-                        logger.info(f"NASA APOD: Image - {data.get('title', 'Unknown')}")
-                        return {
-                            "title": data.get("title", "NASA Bild"),
-                            "url": image_url,
-                            "media_type": "image",
-                            "explanation": data.get("explanation", "")[:150] + "..."
-                        }
-                except Exception as e:
-                    logger.warning(f"Image validation failed: {e}")
-    except Exception as e:
-        logger.error(f"NASA APOD Error: {e}")
-
-    yesterday = (datetime.now() - timedelta(days=1)).strftime("%Y-%m-%d")
-    fallback_url = f"https://api.nasa.gov/planetary/apod?api_key={NASA_API_KEY}&date={yesterday}"
-
-    try:
-        resp = httpx.get(fallback_url, timeout=10)
-        if resp.status_code == 200:
-            data = resp.json()
-            if data.get("media_type") == "image":
-                logger.info("Using yesterday's APOD as fallback")
-                return {
-                    "title": data.get("title", "NASA APOD (Yesterday)"),
-                    "url": data.get("url", ""),
-                    "media_type": "image",
-                    "explanation": "Gestern: " + data.get("explanation", "")[:140] + "..."
-                }
-    except Exception:
-        pass
-
-    logger.warning("Using hardcoded fallback image")
+    if data.get("media_type") == "video":
+        if "youtube.com/watch" in url and "v=" in url:
+            url = f"https://www.youtube.com/embed/{url.split('v=')[1].split('&')[0]}"
+        media_type = "video"
+    else:
+        media_type = "image"
     return {
-        "title": "Hubble Ultra Deep Field",
-        "url": "https://cdn.esahubble.org/archives/images/screen/heic0611b.jpg",
-        "media_type": "image",
-        "explanation": "Das Hubble Ultra Deep Field - ein Blick in die Tiefen des Universums."
+        "title": data.get("title", "NASA APOD"),
+        "url": url,
+        "media_type": media_type,
+        "explanation": data.get("explanation", "")[:150] + "..."
     }
+
+
+def _meta(html, prop):
+    m = re.search(rf'<meta property="{prop}" content="([^"]*)"', html)
+    return unescape(m.group(1)) if m else ""
+
+
+def _apod_from_website():
+    """APOD now lives at science.nasa.gov/apod — read today's article's og:title/og:image"""
+    landing = httpx.get("https://science.nasa.gov/apod/", headers=HTTP_HEADERS,
+                        timeout=15, follow_redirects=True)
+    landing.raise_for_status()
+    # Article links look like /image-article/apod-2026-november-7-<slug>/ ; newest first
+    links = re.findall(r'href="(https://science\.nasa\.gov/image-article/apod-(\d{4})-([a-z]+)-(\d{1,2})-[^"]*)"',
+                       landing.text)
+    if not links:
+        logger.warning("No APOD article links found on science.nasa.gov")
+        return None
+
+    def link_date(link):
+        try:
+            return datetime.strptime(f"{link[1]} {link[2]} {link[3]}", "%Y %B %d")
+        except ValueError:
+            return datetime.min
+
+    article_url = max(links, key=link_date)[0]
+    article = httpx.get(article_url, headers=HTTP_HEADERS, timeout=15, follow_redirects=True)
+    article.raise_for_status()
+
+    image = _meta(article.text, "og:image")
+    if not image:
+        return None
+    # "APOD: 2026 November 7 – De Gerlache-Kocher Massif - NASA Science" → "De Gerlache-Kocher Massif"
+    title = _meta(article.text, "og:title").removesuffix(" - NASA Science")
+    title = re.sub(r"^APOD:\s*\d{4} \w+ \d{1,2}\s*[–-]\s*", "", title)
+    return {
+        "title": title or "NASA APOD",
+        "url": image,
+        "media_type": "image",
+        "explanation": _meta(article.text, "og:description")[:150]
+    }
+
+
+@timed_cache(seconds=3600, cache_if=lambda r: r is not APOD_FALLBACK)
+def fetch_nasa_apod():
+    """NASA Astronomy Picture of the Day - Cached for 1 hour (API first, then website)"""
+    for source in (_apod_from_api, _apod_from_website):
+        try:
+            logger.info(f"Fetching NASA APOD via {source.__name__}")
+            result = source()
+            if result:
+                logger.info(f"NASA APOD: {result['media_type']} - {result['title']}")
+                return result
+        except Exception as e:
+            logger.error(f"NASA APOD error ({source.__name__}): {e}")
+
+    logger.warning("Using hardcoded APOD fallback image")
+    return APOD_FALLBACK
 
 
 @timed_cache(seconds=3600)
@@ -312,33 +387,27 @@ def fetch_nasa_epic():
     }
 
 
-@timed_cache(seconds=600)
+@timed_cache(seconds=600, cache_if=lambda r: r["raw"] != "TAF nicht verfügbar")
 def fetch_taf(station="EDLP"):
-    """Fetch TAF (Terminal Aerodrome Forecast) - Cached for 10 minutes"""
-    url = f"https://avwx.rest/api/taf/{station}"
-    headers = {"Authorization": f"BEARER {AVWX_TOKEN}"}
-
+    """Fetch TAF (Terminal Aerodrome Forecast) from aviationweather.gov - Cached for 10 minutes"""
     try:
         logger.info(f"Fetching TAF for {station}")
-        resp = httpx.get(url, headers=headers, timeout=10)
+        data = awc_get("taf", station)
 
-        if resp.status_code == 200:
-            data = resp.json()
+        if data:
             logger.info(f"TAF received for {station}")
             return {
-                "station": data.get("station", station),
-                "raw": data.get("raw", "TAF nicht verfügbar"),
-                "forecast": data.get("forecast", [])
+                "station": data.get("icaoId", station),
+                "raw": data.get("rawTAF", "TAF nicht verfügbar"),
+                "forecast": data.get("fcsts", [])
             }
-        else:
-            logger.error(f"TAF API returned status {resp.status_code}")
     except Exception as e:
         logger.error(f"TAF Error: {e}")
 
     return {"station": station, "raw": "TAF nicht verfügbar", "forecast": []}
 
 
-@timed_cache(seconds=3600)
+@timed_cache(seconds=3600, cache_if=lambda r: r["sunrise"] != "──:──")
 def calculate_sun_moon_times():
     """Calculate sunrise, sunset times - Cached for 1 hour"""
     try:
@@ -367,46 +436,43 @@ def calculate_sun_moon_times():
     return {"sunrise": "──:──", "sunset": "──:──"}
 
 
-@timed_cache(seconds=86400)
+@timed_cache(seconds=86400, cache_if=lambda r: r is not None)
 def fetch_station_info(station="EDLP"):
-    """Fetch station/airport info from AVWX - cached for 24 hours"""
-    url = f"https://avwx.rest/api/station/{station}"
-    headers = {"Authorization": f"BEARER {AVWX_TOKEN}"}
+    """Fetch airport info from aviationweather.gov - cached for 24 hours"""
+    surfaces = {"H": "Hart", "A": "Asphalt", "C": "Beton", "G": "Gras", "T": "Gras", "W": "Wasser"}
 
     try:
         logger.info(f"Fetching station info for {station}")
-        resp = httpx.get(url, headers=headers, timeout=10)
+        data = awc_get("airport", station)
 
-        if resp.status_code == 200:
-            data = resp.json()
-
+        if data:
             runways = []
             for rwy in data.get("runways", []):
-                length_raw = rwy.get("length_ft", {})
-                length_ft = length_raw.get("value", 0) if isinstance(length_raw, dict) else length_raw
-                surface_raw = rwy.get("surface", {})
-                surface = surface_raw.get("value", "") if isinstance(surface_raw, dict) else surface_raw
+                length_ft = 0
+                try:
+                    length_ft = int(str(rwy.get("dimension", "")).split("x")[0])
+                except ValueError:
+                    pass
+                surface = rwy.get("surface") or ""
                 runways.append({
-                    "ident": f"{rwy.get('ident1', '?')}/{rwy.get('ident2', '?')}",
-                    "length_ft": int(length_ft) if length_ft else 0,
-                    "surface": surface,
-                    "lights": rwy.get("lights", False)
+                    "ident": rwy.get("id", "?"),
+                    "length_ft": length_ft,
+                    "surface": surfaces.get(surface, surface),
+                    "lights": False
                 })
 
-            elev_ft = data.get("elevation_ft") or 0
+            elev_m = data.get("elev") or 0   # AWC reports elevation in metres
 
             logger.info(f"Station info fetched for {station}: {data.get('name')}")
             return {
-                "name": data.get("name", station),
-                "city": data.get("city", ""),
-                "iata": data.get("iata", ""),
-                "elevation_ft": int(elev_ft),
-                "elevation_m": round(int(elev_ft) * 0.3048),
+                "name": (data.get("name") or station).title(),
+                "city": "",
+                "iata": data.get("iataId") or "",
+                "elevation_ft": round(elev_m / 0.3048),
+                "elevation_m": round(elev_m),
                 "runways": runways,
-                "type": data.get("type", "")
+                "type": ""
             }
-        else:
-            logger.error(f"Station API returned {resp.status_code} for {station}")
 
     except Exception as e:
         logger.error(f"Station fetch error: {e}")
@@ -614,19 +680,25 @@ def api_health():
     }
 
     try:
-        resp = httpx.get(f"https://api.nasa.gov/planetary/apod?api_key={NASA_API_KEY}", timeout=5)
+        # The APOD API is unreliable; the dashboard falls back to the website, so check that
+        resp = httpx.get("https://science.nasa.gov/apod/", headers=HTTP_HEADERS,
+                         timeout=5, follow_redirects=True)
         health["services"]["nasa"] = "ok" if resp.status_code == 200 else "error"
     except Exception as e:
         health["services"]["nasa"] = "error"
         logger.error(f"NASA health check failed: {e}")
 
-    try:
-        resp = httpx.get(f"https://avwx.rest/api/metar/EDLP",
-                         headers={"Authorization": f"BEARER {AVWX_TOKEN}"}, timeout=5)
-        health["services"]["avwx"] = "ok" if resp.status_code == 200 else "error"
-    except Exception as e:
-        health["services"]["avwx"] = "error"
-        logger.error(f"AVWX health check failed: {e}")
+    checks = {
+        "aviationweather": (f"{AWC_API}/metar", {"ids": "EDLP", "format": "json"}),
+        "adsb": (f"{ADSB_API}/point/{HOME_LAT}/{HOME_LON}/5", None),
+    }
+    for name, (url, params) in checks.items():
+        try:
+            resp = httpx.get(url, params=params, headers=HTTP_HEADERS, timeout=5)
+            health["services"][name] = "ok" if resp.status_code == 200 else "error"
+        except Exception as e:
+            health["services"][name] = "error"
+            logger.error(f"{name} health check failed: {e}")
 
     health["status"] = "ok" if all(v == "ok" for v in health["services"].values()) else "degraded"
 
@@ -672,19 +744,56 @@ def api_exit_kiosk():
 
 @app.route("/api/flights")
 def api_flights():
-    """Proxy OpenSky Network flight data to avoid CORS issues"""
+    """Live aircraft from adsb.lol (no key), returned in OpenSky 'states' format for the frontend"""
     try:
         lat_delta = float(request.args.get('lat_delta', 1.5))
         lon_delta = float(request.args.get('lon_delta', 2.0))
         lat = float(request.args.get('lat', HOME_LAT))
         lon = float(request.args.get('lon', HOME_LON))
-        url = (
-            f"https://opensky-network.org/api/states/all"
-            f"?lamin={lat-lat_delta}&lomin={lon-lon_delta}"
-            f"&lamax={lat+lat_delta}&lomax={lon+lon_delta}"
-        )
-        resp = httpx.get(url, timeout=10, headers={"User-Agent": "AviationDashboard/1.0"})
-        return jsonify(resp.json())
+
+        # Box → radius in nautical miles (1° lat = 60 NM); adsb.lol caps at 250 NM
+        radius = max(lat_delta * 60, lon_delta * 60 * math.cos(math.radians(lat)))
+        radius = min(250, round(radius))
+
+        resp = httpx.get(f"{ADSB_API}/point/{lat}/{lon}/{radius}", timeout=10, headers=HTTP_HEADERS)
+        resp.raise_for_status()
+        aircraft = resp.json().get("ac") or []
+
+        now = time()
+        states = []
+        for ac in aircraft:
+            if ac.get("lat") is None or ac.get("lon") is None:
+                continue
+            # Keep the requested rectangle (the API returns a circle)
+            if abs(ac["lat"] - lat) > lat_delta or abs(ac["lon"] - lon) > lon_delta:
+                continue
+
+            alt_baro = ac.get("alt_baro")
+            on_ground = alt_baro == "ground"
+            ft_to_m = lambda v: v * 0.3048 if isinstance(v, (int, float)) else None
+            rate = ac.get("baro_rate", ac.get("geom_rate"))
+            ident = " · ".join(x for x in (ac.get("r"), ac.get("t")) if x)
+
+            # Index layout matches OpenSky /states/all so flights.html stays unchanged
+            states.append([
+                ac.get("hex", ""),
+                ac.get("flight", ""),
+                ident or None,                                   # "country" slot → registration · type
+                now - ac.get("seen_pos", 0),
+                now - ac.get("seen", 0),
+                ac["lon"],
+                ac["lat"],
+                None if on_ground else ft_to_m(alt_baro),
+                on_ground,
+                ac["gs"] * 0.514444 if ac.get("gs") is not None else None,   # kt → m/s
+                ac.get("track", ac.get("true_heading")),
+                rate * 0.00508 if isinstance(rate, (int, float)) else None,  # ft/min → m/s
+                None,
+                ft_to_m(ac.get("alt_geom")),
+                ac.get("squawk"),
+            ])
+
+        return jsonify({"time": int(now), "states": states})
     except Exception as e:
         logger.error(f"Flights API error: {e}")
         return jsonify({"states": None, "error": str(e)}), 200
@@ -692,45 +801,50 @@ def api_flights():
 
 @app.route("/api/skycards")
 def api_skycards():
-    """Fetch latest posts from r/Skycards"""
+    """Latest posts from r/Skycards via RSS (the unauthenticated .json API now returns 403)"""
+    return jsonify({"posts": fetch_skycards()})
+
+
+@timed_cache(seconds=300, cache_if=bool)
+def fetch_skycards():
+    ns = {"a": "http://www.w3.org/2005/Atom", "media": "http://search.yahoo.com/mrss/"}
     try:
-        resp = httpx.get(
-            "https://www.reddit.com/r/Skycards/new.json?limit=10",
-            timeout=15,
-            headers={
-                "User-Agent": "Mozilla/5.0 (compatible; AviationDashboard/1.0)",
-                "Accept": "application/json",
-            },
-            follow_redirects=True
-        )
-        logger.info(f"Reddit status: {resp.status_code}, length: {len(resp.text)}")
-        data = resp.json()
+        resp = httpx.get("https://www.reddit.com/r/Skycards/new/.rss?limit=10",
+                         timeout=15, headers=HTTP_HEADERS, follow_redirects=True)
+        logger.info(f"Reddit RSS status: {resp.status_code}")
+        resp.raise_for_status()
+        root = ET.fromstring(resp.content)
         posts = []
-        for child in data.get("data", {}).get("children", []):
-            p = child["data"]
+        for entry in root.findall("a:entry", ns):
+            link = entry.find("a:link", ns)
+            thumb = entry.find("media:thumbnail", ns)
+            published = entry.findtext("a:published", default="", namespaces=ns)
+            try:
+                created = datetime.fromisoformat(published).timestamp()
+            except ValueError:
+                created = 0
             posts.append({
-                "title": p.get("title", ""),
-                "url": f"https://reddit.com{p.get('permalink', '')}",
-                "thumbnail": p.get("thumbnail", "").replace("&amp;", "&") if p.get("thumbnail", "").startswith("http") else None,
-                "score": p.get("score", 0),
-                "num_comments": p.get("num_comments", 0),
-                "created_utc": p.get("created_utc", 0),
-                "author": p.get("author", ""),
+                "title": entry.findtext("a:title", default="", namespaces=ns),
+                "url": link.get("href") if link is not None else "",
+                "thumbnail": thumb.get("url") if thumb is not None else None,
+                "score": None,          # not included in RSS
+                "num_comments": None,   # not included in RSS
+                "created_utc": created,
+                "author": entry.findtext("a:author/a:name", default="", namespaces=ns).removeprefix("/u/"),
             })
-        return jsonify({"posts": posts})
+        return posts
     except Exception as e:
-        logger.error(f"Skycards API error: {e}")
-        return jsonify({"posts": [], "error": str(e)}), 200
+        logger.error(f"Skycards RSS error: {e}")
+        return []
 
 
 if __name__ == "__main__":
     logger.info("=" * 50)
     logger.info("Starting Aviation Dashboard Server")
-    logger.info(f"NASA API Key: {'*' * (len(NASA_API_KEY) - 4) + NASA_API_KEY[-4:]}")
-    logger.info(f"AVWX Token: {'*' * (len(AVWX_TOKEN) - 4) + AVWX_TOKEN[-4:]}")
+    logger.info(f"NASA API Key: {'DEMO_KEY' if NASA_API_KEY == 'DEMO_KEY' else '****' + NASA_API_KEY[-4:]}")
     logger.info(f"Home: {HOME_LAT}, {HOME_LON}")
     logger.info(f"Dinos loaded: {len(DINO_FACTS)}")
+    logger.info(f"Debug mode: {DEBUG}")
     logger.info("=" * 50)
 
-    os.makedirs("templates", exist_ok=True)
-    app.run(host="0.0.0.0", port=5000, debug=True)
+    app.run(host=os.getenv("HOST", "0.0.0.0"), port=int(os.getenv("PORT", "5000")), debug=DEBUG)

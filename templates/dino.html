@@ -236,7 +236,7 @@ function positionTimeline(){
 // Map
 function initMap(){
     const map=L.map('dino-map',{zoomControl:false, attributionControl:false}).setView([30,0],2);
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{maxZoom:19}).addTo(map);
+    L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}',{maxZoom:16}).addTo(map);
 
     const locations={
         'Nordamerika':[40,-100],
