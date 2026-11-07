@@ -107,9 +107,10 @@ header h1 {font-size:1.2rem; font-weight:900; text-transform:uppercase; letter-s
 .fun-fact p {font-size:0.75rem; line-height:1.5; text-align:center;}
 nav {display:grid; grid-template-columns:1fr; gap:0.5rem;}
 nav button {padding:0.8rem; font-family:'Orbitron',monospace; font-size:0.8rem; font-weight:700; background:var(--button-bg); color:var(--text-primary); border:2px solid var(--border-color); border-radius:4px; cursor:pointer; transition:background 0.2s, box-shadow 0.2s; text-transform:uppercase; box-shadow:0 0 10px var(--border-glow); touch-action:manipulation;}
-nav button:hover {background:var(--button-hover); transform:translateY(-2px);}
+@media (hover: hover) { nav button:hover {background:var(--button-hover); transform:translateY(-2px);} }
 @media(max-width:800px){.comparison-visual{min-height:120px;}.comparison-icon{font-size:1.5rem;}.comparison-bar{width:40px;}}
 </style>
+<link rel="stylesheet" href="/static/touch.css">
 </head>
 <body>
 <script>(function(){if(localStorage.getItem('theme')==='light')document.body.classList.add('light-mode');})();</script>
@@ -265,5 +266,6 @@ positionTimeline();
 initMap();
 </script>
 <script src="/static/display.js"></script>
+<script src="/static/touch.js"></script>
 </body>
 </html>

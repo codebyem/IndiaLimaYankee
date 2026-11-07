@@ -5,6 +5,7 @@ import json
 import math
 import os
 import re
+import threading
 import logging
 from html import unescape
 import xml.etree.ElementTree as ET
@@ -57,34 +58,61 @@ logger.info(f"Starting Aviation Dashboard with coordinates: {HOME_LAT}, {HOME_LO
 
 
 # === CACHING DECORATOR ===
-def timed_cache(seconds=300, cache_if=lambda result: True):
-    """Cache decorator with time-based expiration.
+MAX_STALE_SECONDS = 6 * 3600   # older than this: fetch synchronously instead of serving stale data
 
+
+def timed_cache(seconds=300, cache_if=lambda result: True):
+    """Cache decorator with time-based expiration and stale-while-revalidate.
+
+    Expired entries are returned immediately while a background thread refreshes
+    them — a tap on HOME never waits for NASA or aviationweather.gov.
     cache_if decides whether a result is worth keeping — fallback/error results
     must not be cached, otherwise one timeout shows N/A until the cache expires.
     """
 
     def decorator(func):
         cache = {}
+        refreshing = set()
+        lock = threading.Lock()
+
+        def compute(key, args, kwargs):
+            result = func(*args, **kwargs)
+            if cache_if(result):
+                cache[key] = (result, time())
+            else:
+                logger.warning(f"{func.__name__} returned fallback data — not caching")
+            return result
+
+        def refresh_in_background(key, args, kwargs):
+            try:
+                compute(key, args, kwargs)
+            except Exception as e:
+                logger.error(f"Background refresh of {func.__name__} failed: {e}")
+            finally:
+                with lock:
+                    refreshing.discard(key)
 
         @wraps(func)
         def wrapper(*args, **kwargs):
             key = str(args) + str(kwargs)
-            now = time()
+            entry = cache.get(key)
 
-            if key in cache:
-                result, timestamp = cache[key]
-                if now - timestamp < seconds:
-                    logger.debug(f"Cache HIT for {func.__name__}")
+            if entry:
+                result, timestamp = entry
+                age = time() - timestamp
+                if age < seconds:
+                    return result
+                if age < MAX_STALE_SECONDS:
+                    with lock:
+                        start = key not in refreshing
+                        refreshing.add(key)
+                    if start:
+                        logger.debug(f"Serving stale {func.__name__}, refreshing in background")
+                        threading.Thread(target=refresh_in_background, args=(key, args, kwargs),
+                                         daemon=True).start()
                     return result
 
-            logger.debug(f"Cache MISS for {func.__name__}")
-            result = func(*args, **kwargs)
-            if cache_if(result):
-                cache[key] = (result, now)
-            else:
-                logger.warning(f"{func.__name__} returned fallback data — not caching")
-            return result
+            return compute(key, args, kwargs)
 
         wrapper.clear_cache = lambda: cache.clear()
         return wrapper

@@ -288,10 +288,10 @@
             transition: all 0.3s;
         }
 
-        #dino-card:hover {
+        @media (hover: hover) { #dino-card:hover {
             transform: scale(1.05);
             box-shadow: 0 0 25px rgba(255, 0, 255, 0.6);
-        }
+        } }
 
         .dino-content {
             text-align: center;
@@ -468,6 +468,7 @@
             font-size: 0.58rem;
             display: flex;
             justify-content: space-between;
+            gap: 0.4rem;
             align-items: center;
         }
 
@@ -563,7 +564,8 @@
             border: 1px solid rgba(0,255,255,0.4);
             color: #0ff;
             font-size: 0.7rem;
-            padding: 0.2rem 0.5rem;
+            padding: 0.5rem 1rem;
+            min-height: 44px;
             border-radius: 4px;
             cursor: pointer;
             font-family: 'Orbitron', monospace;
@@ -633,10 +635,10 @@
             touch-action: manipulation;
         }
 
-        nav button:hover {
+        @media (hover: hover) { nav button:hover {
             background: var(--button-hover);
             box-shadow: 0 0 20px var(--border-glow);
-        }
+        } }
 
         nav button:active {
             transform: scale(0.95);
@@ -658,6 +660,7 @@
             to { transform: rotate(360deg); }
         }
     </style>
+<link rel="stylesheet" href="/static/touch.css">
 </head>
 <body>
     <script>(function(){if(localStorage.getItem('theme')==='light')document.body.classList.add('light-mode');})();</script>
@@ -714,7 +717,7 @@
             </div>
 
             <!-- DINO -->
-            <div class="card" id="dino-card" onclick="location.href='/dino'">
+            <div class="card tappable" id="dino-card" role="button" onclick="location.href='/dino'">
                 <h2>DINO DES TAGES</h2>
                 <div class="dino-content">
                     <div class="dino-name">{{ dino.name }}</div>
@@ -1017,5 +1020,6 @@
         setInterval(() => location.reload(), 600000);
     </script>
 <script src="/static/display.js"></script>
+<script src="/static/touch.js"></script>
 </body>
 </html>

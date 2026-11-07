@@ -178,11 +178,11 @@
             touch-action: manipulation;
         }
 
-        nav button:hover {
+        @media (hover: hover) { nav button:hover {
             background: var(--button-hover);
             box-shadow: 0 0 20px var(--border-glow);
             transform: translateY(-2px);
-        }
+        } }
 
         nav button:active {
             transform: translateY(0);
@@ -368,6 +368,7 @@
             50% { opacity: 0.5; }
         }
     </style>
+<link rel="stylesheet" href="/static/touch.css">
 </head>
 <body>
     <script>(function(){if(localStorage.getItem('theme')==='light')document.body.classList.add('light-mode');})();</script>
@@ -457,8 +458,8 @@
                     </div>
                 `,
                 className: 'custom-plane-icon',
-                iconSize: [28, 28],
-                iconAnchor: [14, 14]
+                iconSize: [44, 44],      // finger-sized tap area, symbol stays 28px
+                iconAnchor: [22, 22]
             });
         }
 
@@ -601,5 +602,6 @@
         setInterval(updateFlights, 30000);
     </script>
 <script src="/static/display.js"></script>
+<script src="/static/touch.js"></script>
 </body>
 </html>

@@ -1,0 +1,80 @@
+/*
+ * Touch-first defaults for the kiosk display (touch only, no mouse).
+ * Loaded last in <head> on every page.
+ */
+
+html, body {
+    touch-action: manipulation;              /* no double-tap zoom, no tap delay */
+    -webkit-tap-highlight-color: transparent;
+    -webkit-user-select: none;               /* long press must not select text */
+    user-select: none;
+    -webkit-touch-callout: none;
+    overscroll-behavior: none;               /* no rubber band, no swipe-back */
+}
+
+input, textarea, select {
+    -webkit-user-select: text;
+    user-select: text;
+}
+
+img, svg {
+    -webkit-user-drag: none;                 /* dragging a picture by accident */
+}
+
+/* No mouse → no cursor floating in the middle of the screen */
+@media (pointer: coarse) {
+    *, *::before, *::after { cursor: none !important; }
+}
+
+/* Instant press feedback — set by touch.js on pointerdown, long before the click arrives */
+.pressed {
+    transform: scale(0.95) !important;
+    filter: brightness(1.5) !important;
+    transition: none !important;
+}
+.card.pressed {
+    transform: scale(0.98) !important;
+}
+
+/* Page change indicator: shows the tap was received while the next page loads */
+#nav-loading {
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 4px;
+    width: 0;
+    background: #0ff;
+    box-shadow: 0 0 12px #0ff;
+    z-index: 10002;
+    pointer-events: none;
+    transition: width 6s cubic-bezier(0.1, 0.7, 0.3, 1);
+}
+#nav-loading.active { width: 90%; }
+
+/* Leaflet maps: finger-sized controls */
+.leaflet-bar a,
+.leaflet-touch .leaflet-bar a {
+    width: 44px !important;
+    height: 44px !important;
+    line-height: 44px !important;
+    font-size: 24px !important;
+}
+.leaflet-container a.leaflet-popup-close-button {
+    width: 40px;
+    height: 40px;
+    font-size: 28px;
+    line-height: 40px;
+    top: 0;
+    right: 0;
+}
+/* Bigger tap area around the small plane symbols */
+.custom-plane-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+/* Fractional scaling (1.5×) leaves hairline gaps between map tiles — overlap them by half a pixel */
+.leaflet-tile-container img.leaflet-tile {
+    width: 256.5px !important;
+    height: 256.5px !important;
+}

@@ -43,15 +43,22 @@ if [ -z "$CHROMIUM_BIN" ]; then
     exit 1
 fi
 
-echo "Using: $CHROMIUM_BIN"
+# Touch Display 2 = 1280×720 (landscape). The layout is designed for ~800×480,
+# so scale 1.5 → 853×480 CSS px: everything fits and buttons get finger-sized.
+# Old 800×480 display: DASHBOARD_SCALE=1
+SCALE="${DASHBOARD_SCALE:-1.5}"
+
+echo "Using: $CHROMIUM_BIN (scale $SCALE)"
 "$CHROMIUM_BIN" \
   --kiosk \
   --ozone-platform=wayland \
   --app=http://localhost:5000 \
   --start-fullscreen \
-  --window-size=800,480 \
   --window-position=0,0 \
-  --force-device-scale-factor=1 \
+  --force-device-scale-factor="$SCALE" \
+  --disable-pinch \
+  --overscroll-history-navigation=0 \
+  --disable-features=TouchpadOverscrollHistoryNavigation \
   --noerrdialogs \
   --disable-infobars \
   --disable-session-crashed-bubble \
