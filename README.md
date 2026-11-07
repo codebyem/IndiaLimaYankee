@@ -38,6 +38,24 @@ Get your free API keys from:
 - **NASA API**: https://api.nasa.gov/
 - **Strava** (optional): https://www.strava.com/settings/api
 
+## Nachtmodus & Bildschirm aus
+
+In **Settings → Nachtmodus**:
+- **Auto / Tag / Nacht** – Auto dimmt nach Sonnenstand (oder zu festen Uhrzeiten)
+- **Helligkeit nachts** in Prozent
+- **Bildschirm aus** – alles schwarz, nur ein Einschalt-Button; geht wahlweise bei
+  Sonnenaufgang, zu einer Uhrzeit oder nie automatisch wieder an
+
+Auf dem Pi mit Touch Display wird die echte Hintergrundbeleuchtung gesteuert.
+Dafür einmalig die Rechte freigeben:
+
+```bash
+bash scripts/install_backlight.sh
+sudo systemctl restart aviation-dashboard
+```
+
+Ohne Freigabe (oder am Mac) dunkelt das Dashboard per Overlay ab.
+
 ## Features
 
 ### 1. **Caching System**

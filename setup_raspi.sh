@@ -64,6 +64,12 @@ if [ ! -f dinos.json ]; then
     echo "✅ Created default dinos.json"
 fi
 
+# Backlight permission for night mode / screen off (Touch Display)
+if ls /sys/class/backlight/*/brightness >/dev/null 2>&1; then
+    echo "💡 Enabling backlight control for night mode..."
+    bash scripts/install_backlight.sh
+fi
+
 echo ""
 echo "✨ Setup complete!"
 echo ""

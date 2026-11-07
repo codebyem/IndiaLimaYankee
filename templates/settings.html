@@ -347,6 +347,61 @@
             touch-action: manipulation;
         }
 
+        /* Night mode / screen-off controls */
+        .segmented {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 0.4rem;
+        }
+        .segmented button.active {
+            background: var(--button-hover);
+            box-shadow: 0 0 20px var(--border-glow);
+        }
+        select,
+        input[type="time"] {
+            width: 100%;
+            padding: 0.6rem;
+            background: var(--input-bg);
+            border: 2px solid var(--border-color);
+            border-radius: 4px;
+            color: var(--text-primary);
+            font-family: 'Orbitron', monospace;
+            font-size: 0.8rem;
+            min-height: 44px;
+            box-shadow: 0 0 10px var(--border-glow);
+            touch-action: manipulation;
+        }
+        input[type="time"]::-webkit-calendar-picker-indicator {
+            filter: invert(1) sepia(1) saturate(5) hue-rotate(175deg);
+        }
+        .time-row {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-top: 0.5rem;
+            font-size: 0.65rem;
+        }
+        .time-row.hidden { display: none; }
+        input[type="range"] {
+            width: 100%;
+            height: 44px;
+            accent-color: var(--border-color);
+            touch-action: manipulation;
+        }
+        .range-value {
+            float: right;
+            font-size: 0.7rem;
+        }
+        button.off-btn {
+            width: 100%;
+            min-height: 56px;
+            font-size: 0.85rem;
+            border-color: #fa0;
+            color: #fa0;
+            background: rgba(255, 170, 0, 0.1);
+            box-shadow: 0 0 15px rgba(255, 170, 0, 0.3);
+        }
+
         .button-group {
             display: flex;
             gap: 0.5rem;
@@ -497,6 +552,68 @@
                         Aktuell: <strong id="current-mode">Dark Mode (Cyberpunk)</strong>
                     </div>
                 </div>
+            </div>
+
+            <!-- NIGHT MODE / SCREEN OFF SECTION -->
+            <div class="settings-section">
+                <h2><span class="material-icons" style="font-size: 0.9rem;">bedtime</span> NACHTMODUS</h2>
+
+                <div class="setting-item">
+                    <label class="setting-label">Modus</label>
+                    <div class="setting-description">Automatisch wird es nachts dunkel, tagsüber hell</div>
+                    <div class="segmented" id="display-mode" role="radiogroup" aria-label="Display-Modus">
+                        <button type="button" data-mode="auto">AUTO</button>
+                        <button type="button" data-mode="day">TAG</button>
+                        <button type="button" data-mode="night">NACHT</button>
+                    </div>
+                </div>
+
+                <div class="setting-item">
+                    <label class="setting-label" for="night-schedule">Nacht ist</label>
+                    <select id="night-schedule">
+                        <option value="sun">Nach Sonnenstand</option>
+                        <option value="fixed">Feste Uhrzeiten</option>
+                    </select>
+                    <div class="time-row" id="fixed-times">
+                        <input type="time" id="night-from" aria-label="Nacht ab">
+                        <span>BIS</span>
+                        <input type="time" id="night-to" aria-label="Nacht bis">
+                    </div>
+                </div>
+
+                <div class="setting-item">
+                    <label class="setting-label" for="night-brightness">Helligkeit nachts <span class="range-value" id="night-brightness-value">20 %</span></label>
+                    <input type="range" id="night-brightness" min="5" max="100" step="5" value="20">
+                </div>
+
+                <div class="current-value" id="display-status">Lade…</div>
+
+                <div class="button-group">
+                    <button class="save-btn" onclick="saveDisplay()"><span class="material-icons" style="font-size: 0.8rem;">save</span> SPEICHERN</button>
+                </div>
+                <div id="display-message" class="message"></div>
+            </div>
+
+            <div class="settings-section">
+                <h2><span class="material-icons" style="font-size: 0.9rem;">power_settings_new</span> BILDSCHIRM AUS</h2>
+                <div class="setting-description" style="margin-bottom: 0.8rem;">
+                    Alles wird schwarz, nur ein Button zum Einschalten bleibt sichtbar.
+                </div>
+                <div class="setting-item">
+                    <label class="setting-label" for="wake-mode">Automatisch wieder an</label>
+                    <select id="wake-mode">
+                        <option value="sunrise">Bei Sonnenaufgang</option>
+                        <option value="time">Um feste Uhrzeit</option>
+                        <option value="never">Nie – nur per Button</option>
+                    </select>
+                    <div class="time-row" id="wake-time-row">
+                        <span>UM</span>
+                        <input type="time" id="wake-time" aria-label="Einschalten um">
+                    </div>
+                </div>
+                <button class="off-btn" onclick="screenOff()">
+                    <span class="material-icons" style="font-size: 1rem;">power_settings_new</span> JETZT AUSSCHALTEN
+                </button>
             </div>
 
             <!-- AIRPORT SETTINGS SECTION -->
@@ -761,6 +878,101 @@
             e.target.value = e.target.value.toUpperCase();
         });
 
+        // === Night mode / screen off ===
+        let displayMode = 'auto';
+
+        function setModeButtons(mode) {
+            displayMode = mode;
+            document.querySelectorAll('#display-mode button').forEach(b => {
+                const on = b.dataset.mode === mode;
+                b.classList.toggle('active', on);
+                b.setAttribute('aria-checked', on);
+            });
+        }
+
+        function syncVisibility() {
+            document.getElementById('fixed-times').classList.toggle('hidden',
+                document.getElementById('night-schedule').value !== 'fixed');
+            document.getElementById('wake-time-row').classList.toggle('hidden',
+                document.getElementById('wake-mode').value !== 'time');
+        }
+
+        function showDisplayStatus(s) {
+            const win = s.night_window;
+            const now = s.screen_off ? 'Bildschirm aus' : (s.night ? 'Nacht' : 'Tag');
+            const bl = s.backlight ? 'Beleuchtung wird gesteuert' : 'nur Abdunkeln (Beleuchtung nicht freigegeben)';
+            document.getElementById('display-status').innerHTML =
+                `Jetzt: <strong>${now}</strong> · Nacht ${win.from}–${win.to}<br><span style="opacity:0.8">${bl}</span>`;
+        }
+
+        function fillDisplayForm(s) {
+            const c = s.settings;
+            setModeButtons(c.display_mode);
+            document.getElementById('night-schedule').value = c.night_schedule;
+            document.getElementById('night-from').value = c.night_from;
+            document.getElementById('night-to').value = c.night_to;
+            document.getElementById('night-brightness').value = c.night_brightness;
+            document.getElementById('night-brightness-value').textContent = c.night_brightness + ' %';
+            document.getElementById('wake-mode').value = c.wake_mode;
+            document.getElementById('wake-time').value = c.wake_time;
+            syncVisibility();
+            showDisplayStatus(s);
+        }
+
+        function displayFormData() {
+            return {
+                display_mode: displayMode,
+                night_schedule: document.getElementById('night-schedule').value,
+                night_from: document.getElementById('night-from').value,
+                night_to: document.getElementById('night-to').value,
+                night_brightness: parseInt(document.getElementById('night-brightness').value, 10),
+                wake_mode: document.getElementById('wake-mode').value,
+                wake_time: document.getElementById('wake-time').value,
+            };
+        }
+
+        function showDisplayMessage(text, type) {
+            const el = document.getElementById('display-message');
+            el.textContent = text;
+            el.className = 'message ' + type;
+            el.style.display = 'block';
+            setTimeout(() => { el.style.display = 'none'; }, 3000);
+        }
+
+        async function saveDisplay() {
+            try {
+                const s = await DisplayCtl.save(displayFormData());
+                showDisplayStatus(s);
+                showDisplayMessage('Nachtmodus gespeichert!', 'success');
+            } catch (e) {
+                showDisplayMessage('Fehler: ' + e.message, 'error');
+            }
+        }
+
+        async function screenOff() {
+            try {
+                // Save the wake-up choice first, then switch off
+                await DisplayCtl.save(displayFormData());
+                await DisplayCtl.off();
+            } catch (e) {
+                showDisplayMessage('Fehler: ' + e.message, 'error');
+            }
+        }
+
+        document.querySelectorAll('#display-mode button').forEach(b =>
+            b.addEventListener('click', () => setModeButtons(b.dataset.mode)));
+        document.getElementById('night-schedule').addEventListener('change', syncVisibility);
+        document.getElementById('wake-mode').addEventListener('change', syncVisibility);
+        document.getElementById('night-brightness').addEventListener('input', e => {
+            document.getElementById('night-brightness-value').textContent = e.target.value + ' %';
+        });
+
+        let displayFormFilled = false;
+        document.addEventListener('displaystate', e => {
+            if (!displayFormFilled) { fillDisplayForm(e.detail); displayFormFilled = true; }
+            else showDisplayStatus(e.detail);
+        });
+
         async function exitKiosk() {
             const btn = document.getElementById('exit-btn');
             btn.textContent = 'BEENDE...';
@@ -768,5 +980,6 @@
             await fetch('/api/exit-kiosk', { method: 'POST' });
         }
     </script>
+<script src="/static/display.js"></script>
 </body>
 </html>

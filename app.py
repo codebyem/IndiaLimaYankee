@@ -13,6 +13,8 @@ from functools import wraps
 from time import time
 from dotenv import load_dotenv
 
+from display import DisplayController
+
 # Load .env next to this file (works regardless of the working directory)
 load_dotenv(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".env"))
 
@@ -480,6 +482,10 @@ def fetch_station_info(station="EDLP"):
     return None
 
 
+# === DISPLAY / NIGHT MODE ===
+DISPLAY = DisplayController(APP_SETTINGS, save_settings, calculate_sun_moon_times)
+
+
 # === REQUEST TIMING MIDDLEWARE ===
 @app.before_request
 def before_request():
@@ -731,6 +737,28 @@ def api_config():
     })
 
 
+@app.route("/api/display", methods=['GET', 'POST'])
+def api_display():
+    """Night mode / screen-off state and settings"""
+    if request.method == 'POST':
+        error = DISPLAY.update(request.get_json(silent=True) or {})
+        if error:
+            return jsonify({"error": error}), 400
+    return jsonify(DISPLAY.apply())
+
+
+@app.route("/api/display/off", methods=['POST'])
+def api_display_off():
+    """Black screen with only a wake button; backlight to minimum"""
+    return jsonify(DISPLAY.screen_off())
+
+
+@app.route("/api/display/on", methods=['POST'])
+def api_display_on():
+    DISPLAY.screen_on()
+    return jsonify(DISPLAY.apply())
+
+
 @app.route("/api/exit-kiosk", methods=['POST'])
 def api_exit_kiosk():
     """Close Chromium kiosk on the Pi"""
@@ -846,5 +874,9 @@ if __name__ == "__main__":
     logger.info(f"Dinos loaded: {len(DINO_FACTS)}")
     logger.info(f"Debug mode: {DEBUG}")
     logger.info("=" * 50)
+
+    # With the debug reloader the module runs twice — start the loop only in the serving process
+    if not DEBUG or os.environ.get("WERKZEUG_RUN_MAIN") == "true":
+        DISPLAY.start()
 
     app.run(host=os.getenv("HOST", "0.0.0.0"), port=int(os.getenv("PORT", "5000")), debug=DEBUG)
